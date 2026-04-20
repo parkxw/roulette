@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>智能轮盘 - 管理后台</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#08090d;color:#d8dae8;font-family:system-ui,'PingFang SC',sans-serif;min-height:100vh;padding:16px}
+h1{color:#d4a843;font-size:18px;text-align:center;margin-bottom:16px;padding-bottom:10px;border-bottom:1px solid #252836}
+.login-box{max-width:340px;margin:80px auto;background:#0f1118;border:1px solid #252836;border-radius:16px;padding:28px}
+.login-title{color:#d4a843;font-size:16px;font-weight:700;text-align:center;margin-bottom:20px}
+input,select{width:100%;background:#1c1f2a;border:1px solid #252836;border-radius:8px;color:#d8dae8;font-size:14px;padding:11px;outline:none;margin-bottom:10px}
+input:focus{border-color:#d4a843}
+.btn{width:100%;background:#d4a843;color:#000;border:none;border-radius:10px;font-size:15px;font-weight:700;padding:13px;cursor:pointer}
+.btn-sm{background:#1c1f2a;border:1px solid #252836;color:#d8dae8;border-radius:7px;font-size:11px;padding:5px 10px;cursor:pointer;margin-right:4px;margin-top:4px}
+.btn-red{color:#e05252;border-color:rgba(224,82,82,.3)}
+.btn-green{color:#2eb87a;border-color:rgba(46,184,122,.3)}
+.btn-blue{color:#3d7eff;border-color:rgba(61,126,255,.3)}
+.main{max-width:600px;margin:0 auto;display:none}
+.card{background:#0f1118;border:1px solid #252836;border-radius:12px;padding:16px;margin-bottom:12px}
+.card-title{color:#d4a843;font-size:12px;font-weight:700;margin-bottom:12px;letter-spacing:1px}
+.stat-row{display:flex;gap:8px;margin-bottom:12px}
+.stat{flex:1;background:#1c1f2a;border-radius:8px;padding:10px;text-align:center}
+.stat-num{font-size:20px;font-weight:700;color:#d4a843}
+.stat-label{font-size:10px;color:#5a5f7a;margin-top:2px}
+.code-display{background:#1c1f2a;border:2px solid #d4a843;border-radius:10px;padding:14px;margin:12px 0}
+.code-num{font-size:28px;font-weight:900;color:#d4a843;letter-spacing:4px;font-family:'Courier New',monospace;text-align:center}
+.code-info{font-size:11px;color:#5a5f7a;margin-top:5px;text-align:center}
+.user-item{background:#1c1f2a;border-radius:10px;padding:12px;margin-bottom:8px}
+.ui-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px}
+.ui-name{font-size:14px;font-weight:700;color:#d8dae8}
+.ui-code{font-family:'Courier New',monospace;font-size:13px;color:#d4a843;letter-spacing:2px;margin-top:2px}
+.ui-info{font-size:10px;color:#5a5f7a;line-height:1.8}
+.badge{display:inline-block;padding:2px 8px;border-radius:6px;font-size:10px;font-weight:700}
+.bg-green{background:rgba(46,184,122,.15);color:#2eb87a}
+.bg-red{background:rgba(224,82,82,.15);color:#e05252}
+.bg-blue{background:rgba(61,126,255,.15);color:#3d7eff}
+.msg{text-align:center;padding:8px;border-radius:8px;font-size:12px;margin-bottom:10px;display:none}
+.msg-ok{background:rgba(46,184,122,.15);color:#2eb87a}
+.msg-err{background:rgba(224,82,82,.15);color:#e05252}
+.empty{text-align:center;color:#5a5f7a;font-size:12px;padding:20px}
+.label{font-size:11px;color:#5a5f7a;margin-bottom:4px}
+.days-row{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:10px}
+.row2{display:flex;gap:8px}
+.row2 > *{flex:1}
+</style>
+</head>
+<body>
+
+<div class="login-box" id="loginBox">
+  <div class="login-title">🔐 管理员登录</div>
+  <div class="label">管理员密码</div>
+  <input type="password" id="adminPwd" placeholder="输入管理员密码" onkeydown="if(event.key==='Enter')adminLogin()">
+  <button class="btn" onclick="adminLogin()">登录</button>
+  <div class="msg msg-err" id="loginErr" style="display:none">密码错误</div>
+</div>
+
+<div class="main" id="mainBox">
+  <h1>🎰 智能轮盘 管理后台</h1>
+
+  <div class="stat-row">
+    <div class="stat"><div class="stat-num" id="statTotal">0</div><div class="stat-label">总用户</div></div>
+    <div class="stat"><div class="stat-num" id="statActive" style="color:#2eb87a">0</div><div class="stat-label">有效</div></div>
+    <div class="stat"><div class="stat-num" id="statExp" style="color:#e05252">0</div><div class="stat-label">过期</div></div>
+    <div class="stat"><div class="stat-num" id="statBound" style="color:#3d7eff">0</div><div class="stat-label">已绑定</div></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">➕ 创建新用户</div>
+    <div class="row2">
+      <div>
+        <div class="label">用户名（唯一）</div>
+        <input type="text" id="newUser" placeholder="例如：zhang01">
+      </div>
+      <div>
+        <div class="label">备注</div>
+        <input type="text" id="newNote" placeholder="例如：张三">
+      </div>
+    </div>
+    <div class="label">有效天数</div>
+    <div class="days-row">
+      <button class="btn-sm" onclick="setDays(7)">7天</button>
+      <button class="btn-sm" onclick="setDays(30)">30天</button>
+      <button class="btn-sm" onclick="setDays(60)">60天</button>
+      <button class="btn-sm" onclick="setDays(90)">90天</button>
+      <button class="btn-sm" onclick="setDays(180)">180天</button>
+      <button class="btn-sm" onclick="setDays(365)">1年</button>
+    </div>
+    <input type="number" id="newDays" placeholder="自定义天数">
+    <button class="btn" onclick="createUser()" style="margin-top:4px">🎲 创建用户并生成密码</button>
+    <div id="newCodeBox" style="display:none;margin-top:12px">
+      <div class="code-display">
+        <div class="code-num" id="newCodeNum"></div>
+        <div class="code-info" id="newCodeInfo"></div>
+      </div>
+      <button class="btn-sm" onclick="copyInfo()">📋 复制用户名+密码</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">👥 用户列表</div>
+    <div class="msg msg-ok" id="msgOk"></div>
+    <div class="msg msg-err" id="msgErr"></div>
+    <input type="text" id="searchInp" placeholder="🔍 搜索用户名或备注..." oninput="filterUsers()">
+    <div id="userList"><div class="empty">暂无用户</div></div>
+  </div>
+</div>
+
+<script>
+var DB_URL = 'https://rouletteapp-f38fa-default-rtdb.asia-southeast1.firebasedatabase.app';
+var ADMIN_PASSWORD = '888888';
+var allUsers = {};
+
+function adminLogin() {
+  if (document.getElementById('adminPwd').value === ADMIN_PASSWORD) {
+    document.getElementById('loginBox').style.display = 'none';
+    document.getElementById('mainBox').style.display = 'block';
+    loadUsers();
+  } else {
+    var e = document.getElementById('loginErr');
+    e.style.display = 'block';
+    setTimeout(function(){ e.style.display='none'; }, 2000);
+  }
+}
+
+function setDays(d) { document.getElementById('newDays').value = d; }
+
+function createUser() {
+  var username = document.getElementById('newUser').value.trim().toLowerCase();
+  var note = document.getElementById('newNote').value.trim() || username;
+  var days = parseInt(document.getElementById('newDays').value);
+  
+  if (!username) { alert('请输入用户名'); return; }
+  if (!/^[a-z0-9_]+$/.test(username)) { alert('用户名只能包含英文、数字和下划线'); return; }
+  if (!days || days < 1) { alert('请输入有效天数'); return; }
+
+  // 检查用户名是否已存在
+  dbGet('/users/' + username, function(err, data) {
+    if (data) { alert('用户名已存在，请换一个'); return; }
+    
+    // 生成8位随机密码
+    var code = '';
+    for (var i = 0; i < 8; i++) code += Math.floor(Math.random() * 10);
+    
+    var now = Date.now();
+    var expiry = now + days * 24 * 60 * 60 * 1000;
+    var expiryStr = new Date(expiry).toISOString().split('T')[0];
+
+    dbPut('/users/' + username, {
+      code: code, note: note, created: now, expiry: expiry, active: true
+    }, function() {
+      document.getElementById('newCodeNum').textContent = code;
+      document.getElementById('newCodeInfo').textContent = '用户名：' + username + '　备注：' + note + '　到期：' + expiryStr;
+      document.getElementById('newCodeBox').style.display = 'block';
+      loadUsers();
+    });
+  });
+}
+
+function copyInfo() {
+  var code = document.getElementById('newCodeNum').textContent;
+  var info = document.getElementById('newCodeInfo').textContent;
+  var username = info.split('用户名：')[1].split('　')[0];
+  var text = '用户名：' + username + '\n密码：' + code;
+  navigator.clipboard.writeText(text).catch(function(){});
+  alert('已复制：\n' + text);
+}
+
+function dbGet(path, cb) {
+  var xhr = new XMLHttpRequest();
+  xhr.open('GET', DB_URL + path + '.json', true);
+  xhr.timeout = 10000;
+  xhr.onload = function() {
+    if (xhr.status === 200) {
+      try { cb(null, JSON.parse(xhr.responseText)); } catch(e) { cb(e, null); }
+    } else { cb(new Error('HTTP ' + xhr.status), null); }
+  };
+  xhr.onerror = function() { cb(new Error('network'), null); };
+  xhr.ontimeout = function() { cb(new Error('timeout'), null); };
+  xhr.send();
+}
+
+function dbPut(path, data, cb) {
+  var xhr = new XMLHttpRequest();
+  xhr.open('PUT', DB_URL + path + '.json', true);
+  xhr.setRequestHeader('Content-Type', 'application/json');
+  xhr.onload = function() { if (cb) cb(); };
+  xhr.send(JSON.stringify(data));
+}
+
+function dbDelete(path, cb) {
+  var xhr = new XMLHttpRequest();
+  xhr.open('DELETE', DB_URL + path + '.json', true);
+  xhr.onload = function() { if (cb) cb(); };
+  xhr.send();
+}
+
+function loadUsers() {
+  dbGet('/users', function(err, data) {
+    allUsers = data || {};
+    renderUsers(allUsers);
+  });
+}
+
+function filterUsers() {
+  var q = document.getElementById('searchInp').value.toLowerCase();
+  if (!q) { renderUsers(allUsers); return; }
+  var filtered = {};
+  Object.entries(allUsers).forEach(function(e) {
+    if (e[0].includes(q) || (e[1].note||'').toLowerCase().includes(q)) filtered[e[0]] = e[1];
+  });
+  renderUsers(filtered);
+}
+
+function renderUsers(data) {
+  var list = document.getElementById('userList');
+  if (!data || !Object.keys(data).length) {
+    list.innerHTML = '<div class="empty">暂无用户</div>';
+    updateStats(0,0,0,0); return;
+  }
+
+  var total=0, active=0, expired=0, bound=0;
+  var now = Date.now();
+  var html = '';
+
+  Object.entries(data).sort(function(a,b){ return b[1].created-a[1].created; }).forEach(function(entry) {
+    var uname = entry[0], d = entry[1];
+    var isExp = now > d.expiry || !d.active;
+    var expDate = new Date(d.expiry).toISOString().split('T')[0];
+    var daysLeft = Math.ceil((d.expiry - now) / (24*60*60*1000));
+    var lastLogin = d.lastLogin ? new Date(d.lastLogin).toLocaleString('zh-CN') : '未登录';
+
+    total++;
+    if (isExp) expired++; else active++;
+    if (d.deviceId) bound++;
+
+    html += '<div class="user-item">';
+    html += '<div class="ui-top"><div>';
+    html += '<div class="ui-name">' + uname + (d.note && d.note!==uname ? ' <span style="color:#5a5f7a;font-size:11px">(' + d.note + ')</span>' : '') + '</div>';
+    html += '<div class="ui-code">' + (d.code||'--') + '</div>';
+    html += '</div><div style="text-align:right">';
+    if (isExp) html += '<span class="badge bg-red">已过期</span>';
+    else html += '<span class="badge bg-green">有效 ' + daysLeft + '天</span>';
+    if (d.deviceId) html += '<br><span class="badge bg-blue" style="margin-top:3px">已绑定</span>';
+    html += '</div></div>';
+    html += '<div class="ui-info">到期：' + expDate + '　最后登录：' + lastLogin + '</div>';
+    html += '<div style="margin-top:8px">';
+    html += '<button class="btn-sm btn-green" onclick="renewUser(\'' + uname + '\')">续费</button>';
+    html += '<button class="btn-sm" onclick="resetCode(\'' + uname + '\')">重置密码</button>';
+    if (d.deviceId) html += '<button class="btn-sm btn-blue" onclick="unbindUser(\'' + uname + '\')">解绑</button>';
+    html += '<button class="btn-sm btn-red" onclick="deleteUser(\'' + uname + '\')">删除</button>';
+    html += '</div></div>';
+  });
+
+  list.innerHTML = html;
+  updateStats(total, active, expired, bound);
+}
+
+function updateStats(t,a,e,b) {
+  document.getElementById('statTotal').textContent = t;
+  document.getElementById('statActive').textContent = a;
+  document.getElementById('statExp').textContent = e;
+  document.getElementById('statBound').textContent = b;
+}
+
+function renewUser(uname) {
+  var days = prompt('续费天数（从今天起）：', '30');
+  if (!days) return;
+  var d = allUsers[uname];
+  dbPut('/users/' + uname, Object.assign({}, d, {
+    expiry: Date.now() + parseInt(days) * 24*60*60*1000, active: true
+  }), function() { showMsg('ok', '续费成功！'); loadUsers(); });
+}
+
+function resetCode(uname) {
+  if (!confirm('重置 ' + uname + ' 的密码？')) return;
+  var code = '';
+  for (var i = 0; i < 8; i++) code += Math.floor(Math.random() * 10);
+  var d = allUsers[uname];
+  dbPut('/users/' + uname, Object.assign({}, d, { code: code }), function() {
+    showMsg('ok', '新密码：' + code);
+    loadUsers();
+  });
+}
+
+function unbindUser(uname) {
+  if (!confirm('解绑 ' + uname + ' 的设备？')) return;
+  var d = allUsers[uname];
+  var newD = Object.assign({}, d);
+  delete newD.deviceId;
+  dbPut('/users/' + uname, newD, function() { showMsg('ok', '设备已解绑！'); loadUsers(); });
+}
+
+function deleteUser(uname) {
+  if (!confirm('确定删除用户 ' + uname + ' ？')) return;
+  dbDelete('/users/' + uname, function() { showMsg('ok', '已删除'); loadUsers(); });
+}
+
+function showMsg(type, text) {
+  var el = document.getElementById(type==='ok'?'msgOk':'msgErr');
+  el.textContent = text;
+  el.style.display = 'block';
+  setTimeout(function(){ el.style.display='none'; }, 4000);
+}
+</script>
+</body>
+</html>
