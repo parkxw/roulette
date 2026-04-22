@@ -10,7 +10,7 @@ body{background:#08090d;color:#d8dae8;font-family:system-ui,'PingFang SC',sans-s
 h1{color:#d4a843;font-size:18px;text-align:center;margin-bottom:16px;padding-bottom:10px;border-bottom:1px solid #252836}
 .login-box{max-width:340px;margin:80px auto;background:#0f1118;border:1px solid #252836;border-radius:16px;padding:28px}
 .login-title{color:#d4a843;font-size:16px;font-weight:700;text-align:center;margin-bottom:20px}
-input,select{width:100%;background:#1c1f2a;border:1px solid #252836;border-radius:8px;color:#d8dae8;font-size:14px;padding:11px;outline:none;margin-bottom:10px}
+input{width:100%;background:#1c1f2a;border:1px solid #252836;border-radius:8px;color:#d8dae8;font-size:14px;padding:11px;outline:none;margin-bottom:10px}
 input:focus{border-color:#d4a843}
 .btn{width:100%;background:#d4a843;color:#000;border:none;border-radius:10px;font-size:15px;font-weight:700;padding:13px;cursor:pointer}
 .btn-sm{background:#1c1f2a;border:1px solid #252836;color:#d8dae8;border-radius:7px;font-size:11px;padding:5px 10px;cursor:pointer;margin-right:4px;margin-top:4px}
@@ -43,11 +43,10 @@ input:focus{border-color:#d4a843}
 .label{font-size:11px;color:#5a5f7a;margin-bottom:4px}
 .days-row{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:10px}
 .row2{display:flex;gap:8px}
-.row2 > *{flex:1}
+.row2>*{flex:1}
 </style>
 </head>
 <body>
-
 <div class="login-box" id="loginBox">
   <div class="login-title">🔐 管理员登录</div>
   <div class="label">管理员密码</div>
@@ -58,7 +57,6 @@ input:focus{border-color:#d4a843}
 
 <div class="main" id="mainBox">
   <h1>🎰 智能轮盘 管理后台</h1>
-
   <div class="stat-row">
     <div class="stat"><div class="stat-num" id="statTotal">0</div><div class="stat-label">总用户</div></div>
     <div class="stat"><div class="stat-num" id="statActive" style="color:#2eb87a">0</div><div class="stat-label">有效</div></div>
@@ -69,14 +67,8 @@ input:focus{border-color:#d4a843}
   <div class="card">
     <div class="card-title">➕ 创建新用户</div>
     <div class="row2">
-      <div>
-        <div class="label">用户名（唯一）</div>
-        <input type="text" id="newUser" placeholder="例如：zhang01">
-      </div>
-      <div>
-        <div class="label">备注</div>
-        <input type="text" id="newNote" placeholder="例如：张三">
-      </div>
+      <div><div class="label">用户名（唯一）</div><input type="text" id="newUser" placeholder="例如：zhang01"></div>
+      <div><div class="label">备注</div><input type="text" id="newNote" placeholder="例如：张三"></div>
     </div>
     <div class="label">有效天数</div>
     <div class="days-row">
@@ -108,15 +100,18 @@ input:focus{border-color:#d4a843}
 </div>
 
 <script>
-var DB_URL = 'https://rouletteapp-f38fa-default-rtdb.asia-southeast1.firebasedatabase.app';
+var JBIN_URL = 'https://api.jsonbin.io/v3/b/69e8745e856a6821895d3810';
+var JBIN_KEY = '$2a$10$38dIP0GZAu15ZxICquWk0.uTGCryby.wx7IpA5cDxk5LHEMNNnjP6';
 var ADMIN_PASSWORD = '888888';
-var allUsers = {};
+var allData = {users:{}};
+var _newUsername = '';
+var _newCode = '';
 
 function adminLogin() {
   if (document.getElementById('adminPwd').value === ADMIN_PASSWORD) {
     document.getElementById('loginBox').style.display = 'none';
     document.getElementById('mainBox').style.display = 'block';
-    loadUsers();
+    loadData();
   } else {
     var e = document.getElementById('loginErr');
     e.style.display = 'block';
@@ -126,6 +121,32 @@ function adminLogin() {
 
 function setDays(d) { document.getElementById('newDays').value = d; }
 
+function loadData() {
+  var xhr = new XMLHttpRequest();
+  xhr.open('GET', JBIN_URL + '/latest', true);
+  xhr.setRequestHeader('X-Master-Key', JBIN_KEY);
+  xhr.onload = function() {
+    if (xhr.status === 200) {
+      try {
+        var result = JSON.parse(xhr.responseText);
+        allData = result.record || result;
+        if (!allData.users) allData.users = {};
+        renderUsers(allData.users);
+      } catch(e) { showMsg('err', '数据加载失败'); }
+    }
+  };
+  xhr.send();
+}
+
+function saveData(cb) {
+  var xhr = new XMLHttpRequest();
+  xhr.open('PUT', JBIN_URL, true);
+  xhr.setRequestHeader('Content-Type', 'application/json');
+  xhr.setRequestHeader('X-Master-Key', JBIN_KEY);
+  xhr.onload = function() { if (cb) cb(); };
+  xhr.send(JSON.stringify(allData));
+}
+
 function createUser() {
   var username = document.getElementById('newUser').value.trim().toLowerCase();
   var note = document.getElementById('newNote').value.trim() || username;
@@ -134,174 +155,120 @@ function createUser() {
   if (!username) { alert('请输入用户名'); return; }
   if (!/^[a-z0-9_]+$/.test(username)) { alert('用户名只能包含英文、数字和下划线'); return; }
   if (!days || days < 1) { alert('请输入有效天数'); return; }
+  if (allData.users[username]) { alert('用户名已存在，请换一个'); return; }
 
-  // 检查用户名是否已存在
-  dbGet('/users/' + username, function(err, data) {
-    if (data) { alert('用户名已存在，请换一个'); return; }
-    
-    // 生成8位随机密码
-    var code = '';
-    for (var i = 0; i < 8; i++) code += Math.floor(Math.random() * 10);
-    
-    var now = Date.now();
-    var expiry = now + days * 24 * 60 * 60 * 1000;
-    var expiryStr = new Date(expiry).toISOString().split('T')[0];
+  var code = '';
+  for (var i = 0; i < 8; i++) code += Math.floor(Math.random() * 10);
+  
+  var now = Date.now();
+  var expiry = now + days * 24 * 60 * 60 * 1000;
+  var expiryStr = new Date(expiry).toISOString().split('T')[0];
 
-    dbPut('/users/' + username, {
-      code: code, note: note, created: now, expiry: expiry, active: true
-    }, function() {
-      document.getElementById('newCodeNum').textContent = code;
-      document.getElementById('newCodeInfo').textContent = '用户名：' + username + '　备注：' + note + '　到期：' + expiryStr;
-      document.getElementById('newCodeBox').style.display = 'block';
-      loadUsers();
-    });
+  allData.users[username] = { code:code, note:note, created:now, expiry:expiry, active:true };
+  
+  saveData(function() {
+    _newUsername = username;
+    _newCode = code;
+    document.getElementById('newCodeNum').textContent = code;
+    document.getElementById('newCodeInfo').textContent = '用户名：' + username + '　到期：' + expiryStr;
+    document.getElementById('newCodeBox').style.display = 'block';
+    renderUsers(allData.users);
   });
 }
 
 function copyInfo() {
-  var code = document.getElementById('newCodeNum').textContent;
-  var info = document.getElementById('newCodeInfo').textContent;
-  var username = info.split('用户名：')[1].split('　')[0];
-  var text = '用户名：' + username + '\n密码：' + code;
+  var text = '用户名：' + _newUsername + '\n密码：' + _newCode;
   navigator.clipboard.writeText(text).catch(function(){});
   alert('已复制：\n' + text);
 }
 
-function dbGet(path, cb) {
-  var xhr = new XMLHttpRequest();
-  xhr.open('GET', DB_URL + path + '.json', true);
-  xhr.timeout = 10000;
-  xhr.onload = function() {
-    if (xhr.status === 200) {
-      try { cb(null, JSON.parse(xhr.responseText)); } catch(e) { cb(e, null); }
-    } else { cb(new Error('HTTP ' + xhr.status), null); }
-  };
-  xhr.onerror = function() { cb(new Error('network'), null); };
-  xhr.ontimeout = function() { cb(new Error('timeout'), null); };
-  xhr.send();
-}
-
-function dbPut(path, data, cb) {
-  var xhr = new XMLHttpRequest();
-  xhr.open('PUT', DB_URL + path + '.json', true);
-  xhr.setRequestHeader('Content-Type', 'application/json');
-  xhr.onload = function() { if (cb) cb(); };
-  xhr.send(JSON.stringify(data));
-}
-
-function dbDelete(path, cb) {
-  var xhr = new XMLHttpRequest();
-  xhr.open('DELETE', DB_URL + path + '.json', true);
-  xhr.onload = function() { if (cb) cb(); };
-  xhr.send();
-}
-
-function loadUsers() {
-  dbGet('/users', function(err, data) {
-    allUsers = data || {};
-    renderUsers(allUsers);
-  });
-}
-
 function filterUsers() {
   var q = document.getElementById('searchInp').value.toLowerCase();
-  if (!q) { renderUsers(allUsers); return; }
+  if (!q) { renderUsers(allData.users); return; }
   var filtered = {};
-  Object.entries(allUsers).forEach(function(e) {
+  Object.entries(allData.users).forEach(function(e) {
     if (e[0].includes(q) || (e[1].note||'').toLowerCase().includes(q)) filtered[e[0]] = e[1];
   });
   renderUsers(filtered);
 }
 
-function renderUsers(data) {
+function renderUsers(users) {
   var list = document.getElementById('userList');
-  if (!data || !Object.keys(data).length) {
+  if (!users || !Object.keys(users).length) {
     list.innerHTML = '<div class="empty">暂无用户</div>';
     updateStats(0,0,0,0); return;
   }
-
-  var total=0, active=0, expired=0, bound=0;
+  var total=0,active=0,expired=0,bound=0;
   var now = Date.now();
   var html = '';
-
-  Object.entries(data).sort(function(a,b){ return b[1].created-a[1].created; }).forEach(function(entry) {
-    var uname = entry[0], d = entry[1];
+  Object.entries(users).sort(function(a,b){ return b[1].created-a[1].created; }).forEach(function(entry) {
+    var uname=entry[0], d=entry[1];
     var isExp = now > d.expiry || !d.active;
     var expDate = new Date(d.expiry).toISOString().split('T')[0];
-    var daysLeft = Math.ceil((d.expiry - now) / (24*60*60*1000));
+    var daysLeft = Math.ceil((d.expiry-now)/(24*60*60*1000));
     var lastLogin = d.lastLogin ? new Date(d.lastLogin).toLocaleString('zh-CN') : '未登录';
-
-    total++;
-    if (isExp) expired++; else active++;
-    if (d.deviceId) bound++;
-
+    total++; if(isExp)expired++; else active++;
+    if(d.deviceId)bound++;
     html += '<div class="user-item">';
     html += '<div class="ui-top"><div>';
-    html += '<div class="ui-name">' + uname + (d.note && d.note!==uname ? ' <span style="color:#5a5f7a;font-size:11px">(' + d.note + ')</span>' : '') + '</div>';
-    html += '<div class="ui-code">' + (d.code||'--') + '</div>';
+    html += '<div class="ui-name">'+uname+(d.note&&d.note!==uname?' <span style="color:#5a5f7a;font-size:11px">('+d.note+')</span>':'')+'</div>';
+    html += '<div class="ui-code">'+(d.code||'--')+'</div>';
     html += '</div><div style="text-align:right">';
-    if (isExp) html += '<span class="badge bg-red">已过期</span>';
-    else html += '<span class="badge bg-green">有效 ' + daysLeft + '天</span>';
-    if (d.deviceId) html += '<br><span class="badge bg-blue" style="margin-top:3px">已绑定</span>';
+    if(isExp) html+='<span class="badge bg-red">已过期</span>';
+    else html+='<span class="badge bg-green">有效 '+daysLeft+'天</span>';
+    if(d.deviceId) html+='<br><span class="badge bg-blue" style="margin-top:3px">已绑定</span>';
     html += '</div></div>';
-    html += '<div class="ui-info">到期：' + expDate + '　最后登录：' + lastLogin + '</div>';
+    html += '<div class="ui-info">到期：'+expDate+'　最后登录：'+lastLogin+'</div>';
     html += '<div style="margin-top:8px">';
-    html += '<button class="btn-sm btn-green" onclick="renewUser(\'' + uname + '\')">续费</button>';
-    html += '<button class="btn-sm" onclick="resetCode(\'' + uname + '\')">重置密码</button>';
-    if (d.deviceId) html += '<button class="btn-sm btn-blue" onclick="unbindUser(\'' + uname + '\')">解绑</button>';
-    html += '<button class="btn-sm btn-red" onclick="deleteUser(\'' + uname + '\')">删除</button>';
+    html += '<button class="btn-sm btn-green" onclick="renewUser(\''+uname+'\')">续费</button>';
+    html += '<button class="btn-sm" onclick="resetCode(\''+uname+'\')">重置密码</button>';
+    if(d.deviceId) html+='<button class="btn-sm btn-blue" onclick="unbindUser(\''+uname+'\')">解绑</button>';
+    html += '<button class="btn-sm btn-red" onclick="deleteUser(\''+uname+'\')">删除</button>';
     html += '</div></div>';
   });
-
   list.innerHTML = html;
-  updateStats(total, active, expired, bound);
+  updateStats(total,active,expired,bound);
 }
 
 function updateStats(t,a,e,b) {
-  document.getElementById('statTotal').textContent = t;
-  document.getElementById('statActive').textContent = a;
-  document.getElementById('statExp').textContent = e;
-  document.getElementById('statBound').textContent = b;
+  document.getElementById('statTotal').textContent=t;
+  document.getElementById('statActive').textContent=a;
+  document.getElementById('statExp').textContent=e;
+  document.getElementById('statBound').textContent=b;
 }
 
 function renewUser(uname) {
-  var days = prompt('续费天数（从今天起）：', '30');
+  var days = prompt('续费天数（从今天起）：','30');
   if (!days) return;
-  var d = allUsers[uname];
-  dbPut('/users/' + uname, Object.assign({}, d, {
-    expiry: Date.now() + parseInt(days) * 24*60*60*1000, active: true
-  }), function() { showMsg('ok', '续费成功！'); loadUsers(); });
+  allData.users[uname].expiry = Date.now() + parseInt(days)*24*60*60*1000;
+  allData.users[uname].active = true;
+  saveData(function(){ showMsg('ok','续费成功！'); renderUsers(allData.users); });
 }
 
 function resetCode(uname) {
-  if (!confirm('重置 ' + uname + ' 的密码？')) return;
-  var code = '';
-  for (var i = 0; i < 8; i++) code += Math.floor(Math.random() * 10);
-  var d = allUsers[uname];
-  dbPut('/users/' + uname, Object.assign({}, d, { code: code }), function() {
-    showMsg('ok', '新密码：' + code);
-    loadUsers();
-  });
+  if (!confirm('重置 '+uname+' 的密码？')) return;
+  var code='';
+  for(var i=0;i<8;i++) code+=Math.floor(Math.random()*10);
+  allData.users[uname].code = code;
+  saveData(function(){ showMsg('ok','新密码：'+code); renderUsers(allData.users); });
 }
 
 function unbindUser(uname) {
-  if (!confirm('解绑 ' + uname + ' 的设备？')) return;
-  var d = allUsers[uname];
-  var newD = Object.assign({}, d);
-  delete newD.deviceId;
-  dbPut('/users/' + uname, newD, function() { showMsg('ok', '设备已解绑！'); loadUsers(); });
+  if (!confirm('解绑 '+uname+' 的设备？')) return;
+  delete allData.users[uname].deviceId;
+  saveData(function(){ showMsg('ok','设备已解绑！'); renderUsers(allData.users); });
 }
 
 function deleteUser(uname) {
-  if (!confirm('确定删除用户 ' + uname + ' ？')) return;
-  dbDelete('/users/' + uname, function() { showMsg('ok', '已删除'); loadUsers(); });
+  if (!confirm('确定删除用户 '+uname+' ？')) return;
+  delete allData.users[uname];
+  saveData(function(){ showMsg('ok','已删除'); renderUsers(allData.users); });
 }
 
 function showMsg(type, text) {
   var el = document.getElementById(type==='ok'?'msgOk':'msgErr');
-  el.textContent = text;
-  el.style.display = 'block';
-  setTimeout(function(){ el.style.display='none'; }, 4000);
+  el.textContent=text; el.style.display='block';
+  setTimeout(function(){ el.style.display='none'; },4000);
 }
 </script>
 </body>
