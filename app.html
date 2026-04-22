@@ -1691,45 +1691,10 @@ function rebuildTrackingState(){
 }
 
 
-// ===== 密码验证系统 =====
-var DB_URL = 'https://rouletteapp-f38fa-default-rtdb.asia-southeast1.firebasedatabase.app';
-var LOCK_KEY = 'roulette_auth_v3';
-
-var _dbCallbacks = {};
-var _cbCounter = 0;
-
-function onDBResult(cbId, data, err) {
-  if (_dbCallbacks[cbId]) {
-    _dbCallbacks[cbId](err ? new Error(err) : null, data);
-    delete _dbCallbacks[cbId];
-  }
-}
-
-function dbGet(path, cb) {
-  var xhr = new XMLHttpRequest();
-  xhr.open('GET', DB_URL + path + '.json', true);
-  xhr.timeout = 15000;
-  xhr.onload = function() {
-    if (xhr.status === 200) {
-      try { 
-        var result = JSON.parse(xhr.responseText);
-        cb(null, result); 
-      } catch(e) { cb(e, null); }
-    } else { 
-      cb(new Error('HTTP ' + xhr.status), null); 
-    }
-  };
-  xhr.onerror = function() { cb(new Error('network error'), null); };
-  xhr.ontimeout = function() { cb(new Error('timeout'), null); };
-  xhr.send();
-}
-
-function dbPut(path, data) {
-  var xhr = new XMLHttpRequest();
-  xhr.open('PUT', DB_URL + path + '.json', true);
-  xhr.setRequestHeader('Content-Type', 'application/json');
-  xhr.send(JSON.stringify(data));
-}
+// ===== 密码验证系统 (JSONBin) =====
+var JBIN_URL = 'https://api.jsonbin.io/v3/b/69e8745e856a6821895d3810';
+var JBIN_KEY = '$2a$10$38dIP0GZAu15ZxICquWk0.uTGCryby.wx7IpA5cDxk5LHEMNNnjP6';
+var LOCK_KEY = 'roulette_auth_v4';
 
 function getDeviceId() {
   var id = localStorage.getItem('_did');
@@ -1740,20 +1705,49 @@ function getDeviceId() {
   return id;
 }
 
+// 读取所有用户数据
+function getAllUsers(cb) {
+  var xhr = new XMLHttpRequest();
+  xhr.open('GET', JBIN_URL + '/latest', true);
+  xhr.setRequestHeader('X-Master-Key', JBIN_KEY);
+  xhr.timeout = 15000;
+  xhr.onload = function() {
+    if (xhr.status === 200) {
+      try {
+        var result = JSON.parse(xhr.responseText);
+        cb(null, result.record || result);
+      } catch(e) { cb(e, null); }
+    } else { cb(new Error('HTTP ' + xhr.status), null); }
+  };
+  xhr.onerror = function() { cb(new Error('network'), null); };
+  xhr.ontimeout = function() { cb(new Error('timeout'), null); };
+  xhr.send();
+}
+
+// 保存所有用户数据
+function saveAllUsers(data, cb) {
+  var xhr = new XMLHttpRequest();
+  xhr.open('PUT', JBIN_URL, true);
+  xhr.setRequestHeader('Content-Type', 'application/json');
+  xhr.setRequestHeader('X-Master-Key', JBIN_KEY);
+  xhr.onload = function() { if (cb) cb(); };
+  xhr.onerror = function() { if (cb) cb(); };
+  xhr.send(JSON.stringify(data));
+}
+
 function checkAuth() {
   var saved = null;
   try { saved = JSON.parse(localStorage.getItem(LOCK_KEY)); } catch(e){}
   
-  // 没有缓存，直接显示登录
   if (!saved || !saved.username) {
     document.getElementById('lockScreen').style.display = 'flex';
     return;
   }
   
-  // 每次都去服务器验证，完全以服务器为准
-  dbGet('/users/' + saved.username, function(err, data) {
+  // 每次都去服务器验证
+  getAllUsers(function(err, data) {
     if (err) {
-      // 网络错误时，用本地缓存判断（避免无网络时无法使用）
+      // 网络错误，用本地缓存
       if (Date.now() > saved.expiry) {
         localStorage.removeItem(LOCK_KEY);
         document.getElementById('lockScreen').style.display = 'flex';
@@ -1762,15 +1756,15 @@ function checkAuth() {
       }
       return;
     }
-    if (!data || !data.active || Date.now() > data.expiry) {
-      // 服务器说过期或无效，立即锁定
+    var users = data.users || {};
+    var user = users[saved.username];
+    if (!user || !user.active || Date.now() > user.expiry) {
       localStorage.removeItem(LOCK_KEY);
       document.getElementById('lockScreen').style.display = 'flex';
     } else {
-      // 服务器验证通过，更新本地缓存
       try {
         localStorage.setItem(LOCK_KEY, JSON.stringify({
-          username: saved.username, expiry: data.expiry
+          username: saved.username, expiry: user.expiry
         }));
       } catch(e){}
       document.getElementById('lockScreen').style.display = 'none';
@@ -1788,42 +1782,38 @@ function submitCode() {
   var btn = document.getElementById('lockBtn');
   btn.textContent = '验证中...';
   btn.disabled = true;
-
   var deviceId = getDeviceId();
 
-  // 用用户名去查询，验证密码是否匹配
-  dbGet('/users/' + user, function(err, data) {
+  getAllUsers(function(err, data) {
     btn.textContent = '进 入';
     btn.disabled = false;
 
     if (err) { showLockErr('网络错误，请检查网络连接'); return; }
-    if (!data) { showLockErr('用户名不存在，请联系管理员'); return; }
-    if (!data.active) { showLockErr('账号已禁用，请联系管理员'); return; }
-    if (data.code !== code) { showLockErr('密码错误，请重新输入'); return; }
-    if (Date.now() > data.expiry) { showLockExpired(); return; }
     
-    // 检查设备绑定
-    if (data.deviceId && data.deviceId !== deviceId) {
+    var users = data.users || {};
+    var userData = users[user];
+    
+    if (!userData) { showLockErr('用户名不存在，请联系管理员'); return; }
+    if (!userData.active) { showLockErr('账号已禁用，请联系管理员'); return; }
+    if (userData.code !== code) { showLockErr('密码错误，请重新输入'); return; }
+    if (Date.now() > userData.expiry) { showLockExpired(); return; }
+    if (userData.deviceId && userData.deviceId !== deviceId) {
       showLockErr('该账号已在其他设备使用，请联系管理员'); return;
     }
 
-    // 绑定设备，更新登录时间
-    dbPut('/users/' + user, {
-      code: data.code,
-      note: data.note || '',
-      active: data.active,
-      created: data.created,
-      expiry: data.expiry,
-      deviceId: deviceId,
-      lastLogin: Date.now()
+    // 绑定设备
+    users[user] = Object.assign({}, userData, {
+      deviceId: deviceId, lastLogin: Date.now()
     });
-
-    try {
-      localStorage.setItem(LOCK_KEY, JSON.stringify({
-        username: user, expiry: data.expiry
-      }));
-    } catch(e){}
-    document.getElementById('lockScreen').style.display = 'none';
+    data.users = users;
+    saveAllUsers(data, function() {
+      try {
+        localStorage.setItem(LOCK_KEY, JSON.stringify({
+          username: user, expiry: userData.expiry
+        }));
+      } catch(e){}
+      document.getElementById('lockScreen').style.display = 'none';
+    });
   });
 }
 
