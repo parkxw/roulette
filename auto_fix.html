@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>一键清理 app.html</title>
+<style>
+body{font-family:-apple-system,"PingFang SC",sans-serif;max-width:700px;margin:40px auto;padding:20px;background:#f5f5f7}
+h1{color:#333}
+.card{background:white;padding:30px;border-radius:12px;box-shadow:0 4px 20px rgba(0,0,0,.08);text-align:center}
+.big-btn{background:#667eea;color:white;border:none;padding:20px 40px;font-size:18px;font-weight:700;border-radius:10px;cursor:pointer;margin:20px 0;box-shadow:0 4px 12px rgba(102,126,234,.3)}
+.big-btn:hover{background:#5568d3}
+.big-btn:disabled{background:#aaa;cursor:not-allowed}
+.log{margin-top:20px;padding:16px;border-radius:8px;background:#f9fafb;border:1px solid #e5e7eb;font-family:monospace;font-size:13px;white-space:pre-line;text-align:left;max-height:300px;overflow-y:auto;line-height:1.8}
+.ok{color:#065f46}
+.err{color:#c33}
+.warn{color:#d97706}
+.info{color:#2563eb}
+.step-done{background:#d1fae5;color:#065f46;padding:10px;border-radius:6px;margin-top:10px;font-weight:600;display:none}
+.download-btn{background:#10b981;color:white;border:none;padding:16px 32px;font-size:16px;font-weight:700;border-radius:10px;cursor:pointer;margin-top:15px;display:none}
+.download-btn:hover{background:#059669}
+.hint{color:#666;font-size:13px;margin-top:15px;line-height:1.6}
+</style>
+</head>
+<body>
+<div class="card">
+<h1>🛠️ 一键清理 app.html</h1>
+<p style="color:#666">自动下载→清理→下载,完全不需要手动复制粘贴。</p>
+<button class="big-btn" id="goBtn" onclick="run()">🚀 开始清理</button>
+<div class="log" id="log" style="display:none"></div>
+<div class="step-done" id="done">✅ 清理完成!点下面按钮下载</div>
+<button class="download-btn" id="dlBtn" onclick="download()">💾 下载 app.html</button>
+<div class="hint">下载后把文件上传到 GitHub,替换原来的 app.html 即可。</div>
+</div>
+
+<script>
+let cleanedCode = '';
+
+function log(msg, cls) {
+  const el = document.getElementById('log');
+  el.style.display = 'block';
+  const s = document.createElement('div');
+  if (cls) s.className = cls;
+  s.textContent = msg;
+  el.appendChild(s);
+  el.scrollTop = el.scrollHeight;
+}
+
+async function run() {
+  const btn = document.getElementById('goBtn');
+  btn.disabled = true;
+  btn.textContent = '处理中...';
+  document.getElementById('log').innerHTML = '';
+  document.getElementById('done').style.display = 'none';
+  document.getElementById('dlBtn').style.display = 'none';
+  
+  log('🌐 正在从 GitHub 下载 app.html...', 'info');
+  
+  let code;
+  try {
+    // 加时间戳防缓存
+    const url = 'https://raw.githubusercontent.com/parkxw/roulette/refs/heads/main/app.html?t=' + Date.now();
+    const resp = await fetch(url);
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    code = await resp.text();
+    log('✓ 下载完成: ' + code.length + ' 字符 (' + (code.length/1024).toFixed(1) + ' KB)', 'ok');
+  } catch(e) {
+    log('✗ 下载失败: ' + e.message, 'err');
+    log('可能是网络问题或者 GitHub 访问限制', 'err');
+    log('请确认你能访问 https://github.com/parkxw/roulette', 'warn');
+    btn.disabled = false;
+    btn.textContent = '🚀 再试一次';
+    return;
+  }
+  
+  const origSize = code.length;
+  log('---', 'info');
+  
+  // 1. CSS
+  const cssStart = code.indexOf('/* ===== 密码锁定界面 ===== */');
+  if (cssStart >= 0) {
+    const m = '.lock-exp-msg{color:#5a5f7a;font-size:11px;line-height:1.6}';
+    const end = code.indexOf(m, cssStart);
+    if (end >= 0) {
+      let fe = end + m.length;
+      while (fe < code.length && (code[fe] === '\n' || code[fe] === '\r')) fe++;
+      const removed = code.substring(cssStart, fe);
+      code = code.substring(0, cssStart) + code.substring(fe);
+      log('✓ [1/3] 删除 CSS 锁定样式: ' + removed.length + ' 字符', 'ok');
+    } else {
+      log('✗ [1/3] 找不到 CSS 结束标记', 'err');
+    }
+  } else {
+    log('- [1/3] CSS 不存在(可能已清理过)', 'warn');
+  }
+  
+  // 2. HTML
+  const htmlStart = code.indexOf('<!-- 密码锁定界面 -->');
+  if (htmlStart >= 0) {
+    const ib = code.indexOf('<div class="inp-box">', htmlStart);
+    if (ib >= 0) {
+      const removed = code.substring(htmlStart, ib);
+      code = code.substring(0, htmlStart) + code.substring(ib);
+      log('✓ [2/3] 删除 HTML 锁定界面: ' + removed.length + ' 字符', 'ok');
+    } else {
+      log('✗ [2/3] 找不到 inp-box 标记', 'err');
+    }
+  } else {
+    log('- [2/3] HTML 不存在(可能已清理过)', 'warn');
+  }
+  
+  // 3. JS
+  const jsStart = code.indexOf('// ===== 密码验证系统 (JSONBin) =====');
+  if (jsStart >= 0) {
+    const se = code.indexOf('</script>', jsStart);
+    if (se >= 0) {
+      const removed = code.substring(jsStart, se);
+      code = code.substring(0, jsStart) + code.substring(se);
+      log('✓ [3/3] 删除 JS 密码验证: ' + removed.length + ' 字符', 'ok');
+    } else {
+      log('✗ [3/3] 找不到 </script>', 'err');
+    }
+  } else {
+    log('- [3/3] JS 不存在(可能已清理过)', 'warn');
+  }
+  
+  log('---', 'info');
+  log('📊 原始大小: ' + (origSize/1024).toFixed(1) + ' KB', 'info');
+  log('📊 清理后大小: ' + (code.length/1024).toFixed(1) + ' KB', 'info');
+  log('📊 减少: ' + ((origSize - code.length)/1024).toFixed(1) + ' KB', 'ok');
+  
+  // 健康检查
+  log('---', 'info');
+  log('🔍 完整性检查:', 'info');
+  if (code.indexOf('lockScreen') >= 0) log('⚠️ 还有 lockScreen 残留', 'warn');
+  else log('✓ 无 lockScreen 残留', 'ok');
+  
+  if (code.indexOf('JSONBin') >= 0) log('⚠️ 还有 JSONBin 残留', 'warn');
+  else log('✓ 无 JSONBin 残留', 'ok');
+  
+  if (code.indexOf('supabase.auth') < 0) log('❌ 严重: Supabase 登录保护被误删!', 'err');
+  else log('✓ Supabase 登录保护完好', 'ok');
+  
+  if (code.indexOf('buildSrcs') < 0) log('❌ 严重: 核心分析函数被误删!', 'err');
+  else log('✓ 核心分析功能完好', 'ok');
+  
+  cleanedCode = code;
+  document.getElementById('done').style.display = 'block';
+  document.getElementById('dlBtn').style.display = 'inline-block';
+  btn.disabled = false;
+  btn.textContent = '🔄 重新清理';
+}
+
+function download() {
+  if (!cleanedCode) return;
+  const blob = new Blob([cleanedCode], { type: 'text/html;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'app.html';
+  a.click();
+  URL.revokeObjectURL(url);
+  alert('✅ 已下载!文件在"下载"文件夹里,名字是 app.html');
+}
+</script>
+</body>
+</html>
