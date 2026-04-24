@@ -79,4 +79,64 @@
     }
 
     if (typeof window.supabase === 'undefined') {
-      setStatus('❌ Supabase 库未加载,请
+      setStatus('X Supabase 库未加载,请检查网络');
+    } else {
+      setStatus('OK Supabase 库已加载');
+    }
+
+    let supabase;
+    try {
+      supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+      setStatus('OK 客户端已初始化,可以登录');
+    } catch (e) {
+      setStatus('X 初始化失败: ' + e.message);
+    }
+
+    async function login() {
+      const username = document.getElementById('username').value.trim();
+      const password = document.getElementById('password').value;
+
+      if (!username || !password) {
+        showMessage('请输入用户名和密码', 'error');
+        return;
+      }
+      if (!supabase) {
+        showMessage('Supabase 未初始化', 'error');
+        return;
+      }
+
+      const email = username + '@roulette.local';
+      btnEl.disabled = true;
+      btnEl.textContent = '登录中...';
+      setStatus('正在登录: ' + email);
+
+      try {
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email: email, password: password
+        });
+
+        btnEl.disabled = false;
+        btnEl.textContent = '登 录';
+
+        if (error) {
+          setStatus('X ' + error.message);
+          showMessage('登录失败: ' + error.message, 'error');
+        } else {
+          setStatus('OK 登录成功!');
+          showMessage('登录成功! 用户ID: ' + data.user.id.substring(0,8), 'success');
+        }
+      } catch (e) {
+        btnEl.disabled = false;
+        btnEl.textContent = '登 录';
+        setStatus('X 异常: ' + e.message);
+        showMessage('异常: ' + e.message, 'error');
+      }
+    }
+
+    btnEl.addEventListener('click', login);
+    document.getElementById('password').addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') login();
+    });
+  </script>
+</body>
+</html>
