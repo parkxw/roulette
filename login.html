@@ -86,6 +86,12 @@
       try {
         sbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
         setStatus('OK 客户端已初始化,可以登录');
+        sbClient.auth.getSession().then(({ data: { session } }) => {
+          if (session) {
+            setStatus('OK 已登录,正在跳转...');
+            window.location.href = 'app.html';
+          }
+        });
       } catch (e) {
         setStatus('X 初始化失败: ' + e.message);
       }
@@ -114,15 +120,17 @@
           email: email, password: password
         });
 
-        btnEl.disabled = false;
-        btnEl.textContent = '登 录';
-
         if (error) {
+          btnEl.disabled = false;
+          btnEl.textContent = '登 录';
           setStatus('X ' + error.message);
           showMessage('登录失败: ' + error.message, 'error');
         } else {
-          setStatus('OK 登录成功!');
-          showMessage('登录成功! 用户ID: ' + data.user.id.substring(0,8), 'success');
+          setStatus('OK 登录成功! 正在跳转...');
+          showMessage('登录成功! 正在跳转到应用...', 'success');
+          setTimeout(() => {
+            window.location.href = 'app.html';
+          }, 800);
         }
       } catch (e) {
         btnEl.disabled = false;
