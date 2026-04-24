@@ -78,18 +78,17 @@
       msgEl.className = 'message ' + type;
     }
 
+    let sbClient = null;
+
     if (typeof window.supabase === 'undefined') {
       setStatus('X Supabase 库未加载,请检查网络');
     } else {
-      setStatus('OK Supabase 库已加载');
-    }
-
-    let supabase;
-    try {
-      supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-      setStatus('OK 客户端已初始化,可以登录');
-    } catch (e) {
-      setStatus('X 初始化失败: ' + e.message);
+      try {
+        sbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        setStatus('OK 客户端已初始化,可以登录');
+      } catch (e) {
+        setStatus('X 初始化失败: ' + e.message);
+      }
     }
 
     async function login() {
@@ -100,8 +99,8 @@
         showMessage('请输入用户名和密码', 'error');
         return;
       }
-      if (!supabase) {
-        showMessage('Supabase 未初始化', 'error');
+      if (!sbClient) {
+        showMessage('客户端未初始化', 'error');
         return;
       }
 
@@ -111,7 +110,7 @@
       setStatus('正在登录: ' + email);
 
       try {
-        const { data, error } = await supabase.auth.signInWithPassword({
+        const { data, error } = await sbClient.auth.signInWithPassword({
           email: email, password: password
         });
 
