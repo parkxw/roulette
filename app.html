@@ -4,6 +4,27 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <title>轮盘分析 V7</title>
+<script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+  <script>
+    // ========== 登录保护 ==========
+    const SUPABASE_URL = 'https://tutbopofnvehjofscnom.supabase.co';
+    const SUPABASE_KEY = 'sb_publishable_1GZtvCsNlQFn2Xyi5cE9_Q_Sp87vKB9';
+    const sbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    
+    // 页面加载时立即检查登录
+    (async () => {
+      const { data: { session } } = await sbClient.auth.getSession();
+      if (!session) {
+        window.location.href = 'login.html';
+      }
+    })();
+    
+    // 全局退出登录函数,可以在按钮上调用 onclick="logout()"
+    async function logout() {
+      await sbClient.auth.signOut();
+      window.location.href = 'login.html';
+    }
+  </script>  
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{--bg:#08090d;--s1:#0f1118;--s2:#151820;--s3:#1c1f2a;--bd:#252836;
