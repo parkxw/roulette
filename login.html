@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>登录 - 轮盘分析系统</title>
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex; align-items: center; justify-content: center;
+      padding: 20px;
+    }
+    .login-box {
+      background: white; padding: 40px 30px;
+      border-radius: 16px; box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+      width: 100%; max-width: 380px;
+    }
+    h1 { text-align: center; color: #333; margin-bottom: 8px; font-size: 24px; }
+    .subtitle { text-align: center; color: #888; font-size: 13px; margin-bottom: 28px; }
+    .form-group { margin-bottom: 18px; }
+    label { display: block; margin-bottom: 8px; color: #555; font-size: 14px; }
+    input {
+      width: 100%; padding: 12px 14px;
+      border: 2px solid #e0e0e0; border-radius: 8px; font-size: 16px;
+    }
+    input:focus { outline: none; border-color: #667eea; }
+    button {
+      width: 100%; padding: 14px; background: #667eea;
+      color: white; border: none; border-radius: 8px;
+      font-size: 16px; font-weight: 600; cursor: pointer; margin-top: 10px;
+    }
+    button:disabled { background: #aaa; }
+    .message {
+      margin-top: 16px; padding: 12px; border-radius: 8px;
+      font-size: 14px; text-align: center; display: none; word-break: break-word;
+    }
+    .message.error { background: #fee; color: #c33; display: block; }
+    .message.success { background: #efe; color: #3a3; display: block; }
+    .status {
+      margin-top: 10px; padding: 8px; font-size: 11px;
+      background: #f5f5f5; border-radius: 4px; color: #666;
+      font-family: monospace; word-break: break-all;
+    }
+  </style>
+</head>
+<body>
+  <div class="login-box">
+    <h1>🎰 轮盘分析系统</h1>
+    <p class="subtitle">请登录以继续</p >
+    <div class="form-group">
+      <label>用户名</label>
+      <input type="text" id="username" placeholder="例如 user001">
+    </div>
+    <div class="form-group">
+      <label>密码</label>
+      <input type="password" id="password" placeholder="请输入密码">
+    </div>
+    <button id="loginBtn">登 录</button>
+    <div id="message" class="message"></div>
+    <div id="status" class="status">初始化中...</div>
+  </div>
+
+  <script>
+    const SUPABASE_URL = 'https://tutbopofnvehjofscnom.supabase.co';
+    const SUPABASE_KEY = 'sb_publishable_1GZtvCsNlQFn2Xyi5cE9_Q_Sp87vKB9';
+
+    const statusEl = document.getElementById('status');
+    const msgEl = document.getElementById('message');
+    const btnEl = document.getElementById('loginBtn');
+
+    function setStatus(text) { statusEl.textContent = text; }
+    function showMessage(text, type) {
+      msgEl.textContent = text;
+      msgEl.className = 'message ' + type;
+    }
+
+    let sbClient = null;
+
+    if (typeof window.supabase === 'undefined') {
+      setStatus('X Supabase 库未加载,请检查网络');
+    } else {
+      try {
+        sbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        setStatus('OK 客户端已初始化,可以登录');
+      } catch (e) {
+        setStatus('X 初始化失败: ' + e.message);
+      }
+    }
+
+    async function login() {
+      const username = document.getElementById('username').value.trim();
+      const password = document.getElementById('password').value;
+
+      if (!username || !password) {
+        showMessage('请输入用户名和密码', 'error');
+        return;
+      }
+      if (!sbClient) {
+        showMessage('客户端未初始化', 'error');
+        return;
+      }
+
+      const email = username + '@roulette.local';
+      btnEl.disabled = true;
+      btnEl.textContent = '登录中...';
+      setStatus('正在登录: ' + email);
+
+      try {
+        const { data, error } = await sbClient.auth.signInWithPassword({
+          email: email, password: password
+        });
+
+        btnEl.disabled = false;
+        btnEl.textContent = '登 录';
+
+        if (error) {
+          setStatus('X ' + error.message);
+          showMessage('登录失败: ' + error.message, 'error');
+        } else {
+          setStatus('OK 登录成功!');
+          showMessage('登录成功! 用户ID: ' + data.user.id.substring(0,8), 'success');
+        }
+      } catch (e) {
+        btnEl.disabled = false;
+        btnEl.textContent = '登 录';
+        setStatus('X 异常: ' + e.message);
+        showMessage('异常: ' + e.message, 'error');
+      }
+    }
+
+    btnEl.addEventListener('click', login);
+    document.getElementById('password').addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') login();
+    });
+  </script>
+</body>
+</html>
