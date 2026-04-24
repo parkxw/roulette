@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>创建Bin</title>
+<style>
+body{background:#111;color:#fff;font-family:sans-serif;padding:20px;font-size:14px}
+button{background:#d4a843;color:#000;border:none;padding:12px 20px;border-radius:8px;font-size:14px;font-weight:700;width:100%;margin:8px 0;cursor:pointer}
+#result{background:#222;padding:12px;border-radius:8px;margin-top:10px;word-break:break-all;min-height:60px;font-size:13px}
+.big{font-size:20px;font-weight:700;color:#d4a843;margin:10px 0}
+</style>
+</head>
+<body>
+<h3>创建新Bin</h3>
+<button onclick="createBin()">点击创建新Bin</button>
+<div id="result">等待操作...</div>
+
+<script>
+var API_KEY = '$2a$10$38dIP0GZAu15ZxICquWk0.uTGCryby.wx7IpA5cDxk5LHEMNNnjP6';
+
+function createBin() {
+  document.getElementById('result').textContent = '创建中...';
+  var xhr = new XMLHttpRequest();
+  xhr.open('POST', 'https://api.jsonbin.io/v3/b', true);
+  xhr.setRequestHeader('Content-Type', 'application/json');
+  xhr.setRequestHeader('X-Master-Key', API_KEY);
+  xhr.setRequestHeader('X-Bin-Name', 'roulette-users');
+  xhr.setRequestHeader('X-Bin-Private', 'false');
+  xhr.timeout = 15000;
+  xhr.onload = function() {
+    try {
+      var data = JSON.parse(xhr.responseText);
+      if (data.metadata && data.metadata.id) {
+        document.getElementById('result').innerHTML = 
+          '✅ 创建成功！<br><div class="big">BIN ID: ' + data.metadata.id + '</div><br>请截图发给我！';
+      } else {
+        document.getElementById('result').textContent = '状态:' + xhr.status + ' ' + xhr.responseText;
+      }
+    } catch(e) {
+      document.getElementById('result').textContent = '状态:' + xhr.status + ' ' + xhr.responseText;
+    }
+  };
+  xhr.onerror = function() { document.getElementById('result').textContent = '❌ 网络错误'; };
+  xhr.ontimeout = function() { document.getElementById('result').textContent = '❌ 超时'; };
+  xhr.send(JSON.stringify({"users":{}}));
+}
+</script>
+</body>
+</html>
