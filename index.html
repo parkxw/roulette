@@ -2,92 +2,186 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>智能轮盘 - 下载</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>智能轮盘 - App 下载</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-body{background:#0a0b10;color:#d8dae8;font-family:system-ui,'PingFang SC','Microsoft YaHei',sans-serif;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px}
-.container{max-width:480px;width:100%;text-align:center}
-.logo{width:120px;height:120px;border-radius:28px;margin:0 auto 24px;display:block;box-shadow:0 8px 32px rgba(212,168,67,.3)}
-h1{font-size:28px;font-weight:800;color:#d4a843;margin-bottom:8px;letter-spacing:1px}
-.subtitle{font-size:14px;color:#5a5f7a;margin-bottom:40px}
-.card{background:#0f1118;border:1px solid #252836;border-radius:16px;padding:28px;margin-bottom:16px}
-.version{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px}
-.ver-label{font-size:12px;color:#5a5f7a}
-.ver-num{font-size:13px;color:#d4a843;font-weight:700;background:rgba(212,168,67,.1);padding:3px 10px;border-radius:8px}
-.features{text-align:left;margin-bottom:24px}
-.feature{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #1c1f2a;font-size:13px}
-.feature:last-child{border-bottom:none}
-.feature-icon{width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}
-.fi-gold{background:rgba(212,168,67,.15)}
-.fi-red{background:rgba(224,82,82,.15)}
-.fi-blue{background:rgba(61,126,255,.15)}
-.fi-green{background:rgba(46,184,122,.15)}
-.btn-download{display:block;background:linear-gradient(135deg,#d4a843,#f0c060);color:#000;font-size:17px;font-weight:800;padding:16px;border-radius:14px;text-decoration:none;letter-spacing:1px;box-shadow:0 4px 20px rgba(212,168,67,.4);transition:all .2s}
-.btn-download:active{transform:scale(.97);opacity:.9}
-.btn-icon{margin-right:8px;font-size:20px}
-.notice{background:rgba(61,126,255,.08);border:1px solid rgba(61,126,255,.2);border-radius:10px;padding:14px;margin-top:16px;font-size:12px;color:#6699ff;line-height:1.8;text-align:left}
-.notice strong{color:#3d7eff}
-.footer{margin-top:32px;font-size:11px;color:#2a2d3a}
-.steps{text-align:left;margin-top:20px}
-.step{display:flex;gap:12px;padding:10px 0;border-bottom:1px solid #1c1f2a;font-size:12px;color:#5a5f7a}
-.step:last-child{border-bottom:none}
-.step-num{width:22px;height:22px;border-radius:50%;background:#1c1f2a;color:#d4a843;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+body{
+  background: linear-gradient(135deg, #08090d 0%, #1a1d28 50%, #08090d 100%);
+  color:#d8dae8;
+  font-family:system-ui,'PingFang SC','Microsoft YaHei',sans-serif;
+  min-height:100vh;
+  padding:20px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+.container{
+  max-width:420px;
+  width:100%;
+  background:#0f1118;
+  border:1px solid #252836;
+  border-radius:20px;
+  padding:36px 28px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+}
+.logo{
+  text-align:center;
+  font-size:64px;
+  margin-bottom:8px;
+  filter: drop-shadow(0 4px 12px rgba(212,168,67,0.4));
+}
+.title{
+  text-align:center;
+  font-size:28px;
+  font-weight:900;
+  color:#d4a843;
+  margin-bottom:6px;
+  letter-spacing:2px;
+}
+.subtitle{
+  text-align:center;
+  color:#5a5f7a;
+  font-size:13px;
+  margin-bottom:32px;
+  letter-spacing:1px;
+}
+.version-badge{
+  display:inline-block;
+  background:rgba(46,184,122,.15);
+  color:#2eb87a;
+  padding:3px 10px;
+  border-radius:12px;
+  font-size:11px;
+  font-weight:700;
+  margin-left:6px;
+  vertical-align:middle;
+}
+.feature-list{
+  background:#1c1f2a;
+  border-radius:12px;
+  padding:18px 20px;
+  margin-bottom:24px;
+}
+.feature-item{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  font-size:13px;
+  color:#d8dae8;
+  padding:6px 0;
+}
+.feature-icon{
+  color:#2eb87a;
+  font-weight:900;
+  font-size:14px;
+}
+.btn{
+  display:block;
+  width:100%;
+  background:linear-gradient(135deg, #d4a843, #f0c060);
+  color:#000;
+  border:none;
+  border-radius:12px;
+  font-size:17px;
+  font-weight:800;
+  padding:16px;
+  cursor:pointer;
+  text-align:center;
+  text-decoration:none;
+  margin-bottom:12px;
+  box-shadow: 0 6px 20px rgba(212,168,67,0.3);
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+.btn:active{
+  transform:scale(0.98);
+  box-shadow: 0 3px 10px rgba(212,168,67,0.3);
+}
+.btn-secondary{
+  display:block;
+  width:100%;
+  background:#1c1f2a;
+  color:#d4a843;
+  border:1px solid rgba(212,168,67,.3);
+  border-radius:12px;
+  font-size:14px;
+  font-weight:600;
+  padding:13px;
+  cursor:pointer;
+  text-align:center;
+  text-decoration:none;
+  margin-bottom:12px;
+}
+.btn-secondary:active{opacity:0.7}
+.divider{
+  text-align:center;
+  color:#5a5f7a;
+  font-size:11px;
+  margin:18px 0;
+  position:relative;
+}
+.divider::before,.divider::after{
+  content:'';
+  position:absolute;
+  top:50%;
+  width:30%;
+  height:1px;
+  background:#252836;
+}
+.divider::before{left:0}
+.divider::after{right:0}
+.tips{
+  background:rgba(212,168,67,.06);
+  border:1px solid rgba(212,168,67,.2);
+  border-radius:10px;
+  padding:14px;
+  margin-top:18px;
+  font-size:12px;
+  color:#a08840;
+  line-height:1.7;
+}
+.tips-title{
+  color:#d4a843;
+  font-weight:700;
+  margin-bottom:6px;
+  font-size:13px;
+}
+.footer{
+  text-align:center;
+  color:#3a3f55;
+  font-size:11px;
+  margin-top:24px;
+  padding-top:18px;
+  border-top:1px solid #252836;
+}
 </style>
 </head>
 <body>
+
 <div class="container">
-  <img src="icon.png" class="logo" alt="智能轮盘">
-  <h1>智能轮盘</h1>
-  <p class="subtitle">专业轮盘数据分析工具</p>
+  <div class="logo">🎰</div>
+  <div class="title">智能轮盘</div>
+  <div class="subtitle">专业轮盘数据分析工具<span class="version-badge">V8</span></div>
 
-  <div class="card">
-    <div class="version">
-      <span class="ver-label">最新版本</span>
-      <span class="ver-num">V1.0</span>
-    </div>
-    <div class="features">
-      <div class="feature">
-        <div class="feature-icon fi-gold">📊</div>
-        <span>实时数据分析与统计</span>
-      </div>
-      <div class="feature">
-        <div class="feature-icon fi-red">🎯</div>
-        <span>智能推荐系统</span>
-      </div>
-      <div class="feature">
-        <div class="feature-icon fi-blue">📱</div>
-        <span>多桌管理，数据独立保存</span>
-      </div>
-      <div class="feature">
-        <div class="feature-icon fi-green">🔒</div>
-        <span>密码授权，安全使用</span>
-      </div>
-    </div>
-    <a href="app.apk" class="btn-download">
-      <span class="btn-icon">⬇️</span>立即下载 APK
-    </a>
+  <div class="feature-list">
+    <div class="feature-item"><span class="feature-icon">✓</span>实时数据分析与智能预测</div>
+    <div class="feature-item"><span class="feature-icon">✓</span>多盘并行管理</div>
+    <div class="feature-item"><span class="feature-icon">✓</span>区域触发与缺席规律</div>
+    <div class="feature-item"><span class="feature-icon">✓</span>命中追踪与历史统计</div>
+    <div class="feature-item"><span class="feature-icon">✓</span>下注盘可视化</div>
   </div>
 
-  <div class="notice">
-    <strong>安装说明：</strong><br>
-    1. 下载完成后点击 APK 文件<br>
-    2. 如提示"未知来源"，请在设置中允许安装<br>
-    3. 安装后输入授权密码即可使用<br>
-    4. 如需获取密码请联系管理员
+  <a href="app.apk" class="btn" download>📱 下载 App (Android)</a>
+  <a href="login.html" class="btn-secondary">🌐 浏览器登录使用</a>
+
+  <div class="tips">
+    <div class="tips-title">💡 安装提示</div>
+    Android 安装时如果提示"未知来源",请在设置中允许浏览器安装应用。<br>
+    一个账号绑定一台设备,如需换设备请联系管理员解绑。
   </div>
 
-  <div class="card" style="margin-top:16px">
-    <div style="font-size:12px;color:#5a5f7a;margin-bottom:12px;text-align:left">安装步骤</div>
-    <div class="steps">
-      <div class="step"><div class="step-num">1</div><span>点击上方按钮下载 APK 文件</span></div>
-      <div class="step"><div class="step-num">2</div><span>打开文件管理器找到下载的文件</span></div>
-      <div class="step"><div class="step-num">3</div><span>点击安装，允许未知来源</span></div>
-      <div class="step"><div class="step-num">4</div><span>输入授权密码开始使用</span></div>
-    </div>
-  </div>
-
-  <div class="footer">© 2026 智能轮盘 · 未经授权禁止使用</div>
+  <div class="footer">© 2026 智能轮盘 · 仅供参考</div>
 </div>
+
 </body>
 </html>
