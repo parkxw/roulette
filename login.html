@@ -3,146 +3,176 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>登录 - 轮盘分析系统</title>
+  <title>登录 - 智能轮盘</title>
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
       font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      min-height: 100vh;
+      background: #08090d; min-height: 100vh;
       display: flex; align-items: center; justify-content: center;
-      padding: 20px;
+      padding: 20px; color: #d8dae8;
     }
     .login-box {
-      background: white; padding: 40px 30px;
-      border-radius: 16px; box-shadow: 0 20px 60px rgba(0,0,0,0.15);
-      width: 100%; max-width: 380px;
+      background: #0f1118; border: 1px solid #252836;
+      padding: 32px 28px; border-radius: 16px;
+      width: 100%; max-width: 360px;
     }
-    h1 { text-align: center; color: #333; margin-bottom: 8px; font-size: 24px; }
-    .subtitle { text-align: center; color: #888; font-size: 13px; margin-bottom: 28px; }
-    .form-group { margin-bottom: 18px; }
-    label { display: block; margin-bottom: 8px; color: #555; font-size: 14px; }
+    .icon { text-align: center; font-size: 48px; margin-bottom: 8px; }
+    h1 { text-align: center; color: #d4a843; margin-bottom: 6px; font-size: 22px; font-weight: 800; }
+    .subtitle { text-align: center; color: #5a5f7a; font-size: 12px; margin-bottom: 28px; }
+    .form-group { margin-bottom: 14px; }
+    label { display: block; margin-bottom: 6px; color: #5a5f7a; font-size: 11px; }
     input {
-      width: 100%; padding: 12px 14px;
-      border: 2px solid #e0e0e0; border-radius: 8px; font-size: 16px;
+      width: 100%; padding: 13px;
+      background: #1c1f2a; border: 2px solid #252836; border-radius: 10px;
+      color: #d8dae8; font-size: 15px; font-weight: 600; outline: none;
     }
-    input:focus { outline: none; border-color: #667eea; }
+    input:focus { border-color: #d4a843; }
     button {
-      width: 100%; padding: 14px; background: #667eea;
-      color: white; border: none; border-radius: 8px;
-      font-size: 16px; font-weight: 600; cursor: pointer; margin-top: 10px;
+      width: 100%; padding: 14px;
+      background: #d4a843; color: #000; border: none; border-radius: 10px;
+      font-size: 16px; font-weight: 800; cursor: pointer; margin-top: 8px;
     }
-    button:disabled { background: #aaa; }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
     .message {
-      margin-top: 16px; padding: 12px; border-radius: 8px;
-      font-size: 14px; text-align: center; display: none; word-break: break-word;
+      margin-top: 14px; padding: 11px; border-radius: 8px;
+      font-size: 12px; text-align: center; display: none; word-break: break-word;
     }
-    .message.error { background: #fee; color: #c33; display: block; }
-    .message.success { background: #efe; color: #3a3; display: block; }
-    .status {
-      margin-top: 10px; padding: 8px; font-size: 11px;
-      background: #f5f5f5; border-radius: 4px; color: #666;
-      font-family: monospace; word-break: break-all;
-    }
+    .message.error { background: rgba(224,82,82,.15); color: #e05252; display: block; }
+    .message.success { background: rgba(46,184,122,.15); color: #2eb87a; display: block; }
   </style>
 </head>
 <body>
   <div class="login-box">
-    <h1>🎰 轮盘分析系统</h1>
-    <p class="subtitle">请登录以继续</p >
+    <div class="icon">🎰</div>
+    <h1>智能轮盘</h1>
+    <p class="subtitle">专业轮盘数据分析工具</p>
     <div class="form-group">
       <label>用户名</label>
-      <input type="text" id="username" placeholder="例如 user001">
+      <input type="text" id="username" placeholder="请输入用户名" autocomplete="username">
     </div>
     <div class="form-group">
       <label>密码</label>
-      <input type="password" id="password" placeholder="请输入密码">
+      <input type="password" id="password" placeholder="请输入密码" autocomplete="current-password">
     </div>
-    <button id="loginBtn">登 录</button>
+    <button id="loginBtn">进  入</button>
     <div id="message" class="message"></div>
-    <div id="status" class="status">初始化中...</div>
   </div>
 
   <script>
     const SUPABASE_URL = 'https://tutbopofnvehjofscnom.supabase.co';
     const SUPABASE_KEY = 'sb_publishable_1GZtvCsNlQFn2Xyi5cE9_Q_Sp87vKB9';
+    const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-    const statusEl = document.getElementById('status');
     const msgEl = document.getElementById('message');
     const btnEl = document.getElementById('loginBtn');
 
-    function setStatus(text) { statusEl.textContent = text; }
-    function showMessage(text, type) {
+    function showMsg(text, type) {
       msgEl.textContent = text;
       msgEl.className = 'message ' + type;
     }
 
-    let sbClient = null;
-
-    if (typeof window.supabase === 'undefined') {
-      setStatus('X Supabase 库未加载,请检查网络');
-    } else {
-      try {
-        sbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-        setStatus('OK 客户端已初始化,可以登录');
-        sbClient.auth.getSession().then(({ data: { session } }) => {
-          if (session) {
-            setStatus('OK 已登录,正在跳转...');
-            window.location.href = 'app.html';
-          }
-        });
-      } catch (e) {
-        setStatus('X 初始化失败: ' + e.message);
+    function getDeviceId() {
+      let id = localStorage.getItem('_did');
+      if (!id) {
+        id = 'dev_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+        localStorage.setItem('_did', id);
       }
+      return id;
     }
 
+    sb.auth.getSession().then(({ data: { session } }) => {
+      if (session) {
+        const username = session.user.email.split('@')[0];
+        if (username === 'admin') window.location.href = 'admin.html';
+        else window.location.href = 'app.html';
+      }
+    });
+
     async function login() {
-      const username = document.getElementById('username').value.trim();
+      const username = document.getElementById('username').value.trim().toLowerCase();
       const password = document.getElementById('password').value;
 
-      if (!username || !password) {
-        showMessage('请输入用户名和密码', 'error');
-        return;
-      }
-      if (!sbClient) {
-        showMessage('客户端未初始化', 'error');
-        return;
-      }
+      if (!username || !password) { showMsg('请输入用户名和密码', 'error'); return; }
 
       const email = username + '@roulette.local';
       btnEl.disabled = true;
       btnEl.textContent = '登录中...';
-      setStatus('正在登录: ' + email);
 
       try {
-        const { data, error } = await sbClient.auth.signInWithPassword({
-          email: email, password: password
-        });
+        const { data, error } = await sb.auth.signInWithPassword({ email, password });
 
         if (error) {
           btnEl.disabled = false;
-          btnEl.textContent = '登 录';
-          setStatus('X ' + error.message);
-          showMessage('登录失败: ' + error.message, 'error');
-        } else {
-          setStatus('OK 登录成功! 正在跳转...');
-          showMessage('登录成功! 正在跳转到应用...', 'success');
-          setTimeout(() => {
-            window.location.href = 'app.html';
-          }, 800);
+          btnEl.textContent = '进  入';
+          showMsg('用户名或密码错误', 'error');
+          return;
         }
+
+        // 管理员直接进 admin.html
+        if (username === 'admin') {
+          showMsg('管理员登录成功,正在跳转...', 'success');
+          setTimeout(() => { window.location.href = 'admin.html'; }, 600);
+          return;
+        }
+
+        // 普通用户:检查过期、设备
+        const { data: profile, error: pErr } = await sb
+          .from('user_profiles').select('*').eq('username', username).single();
+
+        if (pErr || !profile) {
+          await sb.auth.signOut();
+          btnEl.disabled = false; btnEl.textContent = '进  入';
+          showMsg('账号信息不完整,请联系管理员', 'error');
+          return;
+        }
+
+        if (!profile.is_active) {
+          await sb.auth.signOut();
+          btnEl.disabled = false; btnEl.textContent = '进  入';
+          showMsg('账号已禁用,请联系管理员', 'error');
+          return;
+        }
+
+        const now = new Date();
+        const expiry = new Date(profile.expiry_at);
+        if (now > expiry) {
+          await sb.auth.signOut();
+          btnEl.disabled = false; btnEl.textContent = '进  入';
+          showMsg('账号已过期,请联系管理员续费', 'error');
+          return;
+        }
+
+        const myDevice = getDeviceId();
+        if (profile.device_id && profile.device_id !== myDevice) {
+          await sb.auth.signOut();
+          btnEl.disabled = false; btnEl.textContent = '进  入';
+          showMsg('该账号已在其他设备使用,请联系管理员解绑', 'error');
+          return;
+        }
+
+        await sb.from('user_profiles').update({
+          device_id: profile.device_id || myDevice,
+          last_login: new Date().toISOString()
+        }).eq('username', username);
+
+        const daysLeft = Math.ceil((expiry - now) / (24 * 60 * 60 * 1000));
+        showMsg('登录成功! 剩余 ' + daysLeft + ' 天,正在进入...', 'success');
+        setTimeout(() => { window.location.href = 'app.html'; }, 800);
+
       } catch (e) {
-        btnEl.disabled = false;
-        btnEl.textContent = '登 录';
-        setStatus('X 异常: ' + e.message);
-        showMessage('异常: ' + e.message, 'error');
+        btnEl.disabled = false; btnEl.textContent = '进  入';
+        showMsg('网络错误: ' + e.message, 'error');
       }
     }
 
     btnEl.addEventListener('click', login);
     document.getElementById('password').addEventListener('keypress', (e) => {
       if (e.key === 'Enter') login();
+    });
+    document.getElementById('username').addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') document.getElementById('password').focus();
     });
   </script>
 </body>
