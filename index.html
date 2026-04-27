@@ -4,8 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <title>智能轮盘 - App 下载</title>
-<link rel="icon" type="image/png" href="favicon.png">
-<link rel="apple-touch-icon" href="icon-192.png">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{
@@ -29,7 +27,9 @@ body{
 }
 .logo{
   text-align:center;
-  margin-bottom:14px;
+  font-size:64px;
+  margin-bottom:8px;
+  filter: drop-shadow(0 4px 12px rgba(212,168,67,0.4));
 }
 .title{
   text-align:center;
@@ -91,11 +91,6 @@ body{
   text-decoration:none;
   margin-bottom:12px;
   box-shadow: 0 6px 20px rgba(212,168,67,0.3);
-  transition: transform 0.15s, box-shadow 0.15s;
-}
-.btn:active{
-  transform:scale(0.98);
-  box-shadow: 0 3px 10px rgba(212,168,67,0.3);
 }
 .btn-secondary{
   display:block;
@@ -107,29 +102,10 @@ body{
   font-size:14px;
   font-weight:600;
   padding:13px;
-  cursor:pointer;
   text-align:center;
   text-decoration:none;
   margin-bottom:12px;
 }
-.btn-secondary:active{opacity:0.7}
-.divider{
-  text-align:center;
-  color:#5a5f7a;
-  font-size:11px;
-  margin:18px 0;
-  position:relative;
-}
-.divider::before,.divider::after{
-  content:'';
-  position:absolute;
-  top:50%;
-  width:30%;
-  height:1px;
-  background:#252836;
-}
-.divider::before{left:0}
-.divider::after{right:0}
 .tips{
   background:rgba(212,168,67,.06);
   border:1px solid rgba(212,168,67,.2);
@@ -157,12 +133,10 @@ body{
 </style>
 </head>
 <body>
-
 <div class="container">
-  <div class="logo"><img src="icon-192.png" alt="logo" style="width:96px;height:96px;border-radius:22px;box-shadow:0 8px 24px rgba(212,168,67,0.4)"></div>
+  <div class="logo">🎰</div>
   <div class="title">智能轮盘</div>
   <div class="subtitle">专业轮盘数据分析工具<span class="version-badge">V8</span></div>
-
   <div class="feature-list">
     <div class="feature-item"><span class="feature-icon">✓</span>实时数据分析与智能预测</div>
     <div class="feature-item"><span class="feature-icon">✓</span>多盘并行管理</div>
@@ -170,18 +144,14 @@ body{
     <div class="feature-item"><span class="feature-icon">✓</span>命中追踪与历史统计</div>
     <div class="feature-item"><span class="feature-icon">✓</span>下注盘可视化</div>
   </div>
-
   <a href="app.apk" class="btn" download>📱 下载 App (Android)</a>
   <a href="login.html" class="btn-secondary">🌐 浏览器登录使用</a>
-
   <div class="tips">
     <div class="tips-title">💡 安装提示</div>
     Android 安装时如果提示"未知来源",请在设置中允许浏览器安装应用。<br>
     一个账号绑定一台设备,如需换设备请联系管理员解绑。
   </div>
-
   <div class="footer">© 2026 智能轮盘 · 仅供参考</div>
 </div>
-
 </body>
 </html>
