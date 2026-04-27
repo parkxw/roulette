@@ -4,8 +4,6 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>登录 - 智能轮盘</title>
-  <link rel="icon" type="image/png" href="favicon.png">
-  <link rel="apple-touch-icon" href="icon-192.png">
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -20,7 +18,7 @@
       padding: 32px 28px; border-radius: 16px;
       width: 100%; max-width: 360px;
     }
-    .icon { text-align: center; margin-bottom: 14px; }
+    .icon { text-align: center; font-size: 48px; margin-bottom: 8px; }
     h1 { text-align: center; color: #d4a843; margin-bottom: 6px; font-size: 22px; font-weight: 800; }
     .subtitle { text-align: center; color: #5a5f7a; font-size: 12px; margin-bottom: 28px; }
     .form-group { margin-bottom: 14px; }
@@ -47,7 +45,7 @@
 </head>
 <body>
   <div class="login-box">
-    <div class="icon"><img src="icon-192.png" alt="logo" style="width:80px;height:80px;border-radius:18px;box-shadow:0 4px 16px rgba(212,168,67,0.3)"></div>
+    <div class="icon">🎰</div>
     <h1>智能轮盘</h1>
     <p class="subtitle">专业轮盘数据分析工具</p>
     <div class="form-group">
@@ -112,14 +110,12 @@
           return;
         }
 
-        // 管理员直接进 admin.html
         if (username === 'admin') {
           showMsg('管理员登录成功,正在跳转...', 'success');
           setTimeout(() => { window.location.href = 'admin.html'; }, 600);
           return;
         }
 
-        // 普通用户:检查过期、设备
         const { data: profile, error: pErr } = await sb
           .from('user_profiles').select('*').eq('username', username).single();
 
