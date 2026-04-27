@@ -6,21 +6,91 @@
 <title>轮盘分析 V7</title>
 <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
   <script>
-    // ========== 登录保护 ==========
+    // ========== 登录保护 + 实时过期/设备检查 ==========
     const SUPABASE_URL = 'https://tutbopofnvehjofscnom.supabase.co';
     const SUPABASE_KEY = 'sb_publishable_1GZtvCsNlQFn2Xyi5cE9_Q_Sp87vKB9';
     const sbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-    
-    // 页面加载时立即检查登录
-    (async () => {
-      const { data: { session } } = await sbClient.auth.getSession();
-      if (!session) {
-        window.location.href = 'login.html';
+
+    function _getDevId() {
+      let id = localStorage.getItem('_did');
+      if (!id) {
+        id = 'dev_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+        localStorage.setItem('_did', id);
       }
-    })();
-    
-    // 全局退出登录函数,可以在按钮上调用 onclick="logout()"
+      return id;
+    }
+
+    async function _kickOut(reason) {
+      try { await sbClient.auth.signOut(); } catch(e) {}
+      alert(reason);
+      window.location.href = 'login.html';
+    }
+
+    async function _checkAccess() {
+      try {
+        const { data: { session } } = await sbClient.auth.getSession();
+        if (!session) {
+          window.location.href = 'login.html';
+          return false;
+        }
+
+        const username = session.user.email.split('@')[0];
+
+        // 管理员直接通过
+        if (username === 'admin') return true;
+
+        // 查 user_profiles 检查过期、设备、是否激活
+        const { data: profile, error } = await sbClient
+          .from('user_profiles')
+          .select('*')
+          .eq('username', username)
+          .single();
+
+        if (error || !profile) {
+          await _kickOut('账号信息丢失,请重新登录');
+          return false;
+        }
+
+        if (!profile.is_active) {
+          await _kickOut('账号已被禁用,请联系管理员');
+          return false;
+        }
+
+        const now = new Date();
+        const expiry = new Date(profile.expiry_at);
+        if (now > expiry) {
+          await _kickOut('账号已过期,请联系管理员续费');
+          return false;
+        }
+
+        // 检查设备绑定
+        const myDev = _getDevId();
+        if (profile.device_id && profile.device_id !== myDev) {
+          await _kickOut('该账号已在其他设备使用');
+          return false;
+        }
+
+        return true;
+      } catch (e) {
+        console.error('checkAccess error:', e);
+        return true; // 网络异常时不踢出,避免误判
+      }
+    }
+
+    // 页面打开时立即检查
+    _checkAccess();
+
+    // 每 5 分钟自动检查一次(过期、被禁用、被解绑)
+    setInterval(_checkAccess, 5 * 60 * 1000);
+
+    // 页面重新可见时立即检查(从后台切回)
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden) _checkAccess();
+    });
+
+    // 全局退出登录函数
     async function logout() {
+      if (!confirm('确定退出登录?')) return;
       await sbClient.auth.signOut();
       window.location.href = 'login.html';
     }
