@@ -4,6 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>智能轮盘 - 管理后台</title>
+<link rel="icon" type="image/png" href="favicon.png">
+<link rel="apple-touch-icon" href="icon-192.png">
 <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
@@ -62,7 +64,7 @@ input:focus{border-color:#d4a843}
 </div>
 
 <div class="main" id="mainBox">
-  <h1><span>🎰 智能轮盘 管理后台</span> <button class="btn-logout" onclick="logout()">退出</button></h1>
+  <h1><span style="display:inline-flex;align-items:center;gap:8px"><img src="icon-192.png" alt="logo" style="width:24px;height:24px;border-radius:5px;vertical-align:middle">智能轮盘 管理后台</span> <button class="btn-logout" onclick="logout()">退出</button></h1>
 
   <div class="stat-row">
     <div class="stat"><div class="stat-num" id="statTotal">0</div><div class="stat-label">总用户</div></div>
