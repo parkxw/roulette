@@ -277,11 +277,8 @@ html,body{background:var(--bg);color:var(--txt);font-family:system-ui,'PingFang 
     <button class="btn-sm gold" onclick="showImport()" style="flex:1;padding:6px 0;font-size:11px">📥 导入数据</button>
     <button class="btn-sm gold" onclick="exportAllData()" style="flex:1;padding:6px 0;font-size:11px">📦 导出全部盘</button>
   </div>
-  <!-- 下注盘 + 提示设置 -->
-  <div style="margin-top:8px;display:flex;gap:6px">
-    <button onclick="toggleBoard()" id="board-toggle-btn" style="flex:1;padding:7px;background:var(--s3);border:1px solid var(--gold);color:var(--gold);border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">🎰 下注盘</button>
-    <button onclick="showAlertSettings()" style="padding:7px 12px;background:var(--s3);border:1px solid var(--gold);color:var(--gold);border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">🔔</button>
-  </div>
+  <!-- 下注盘 -->
+  <button onclick="toggleBoard()" id="board-toggle-btn" style="width:100%;margin-top:8px;padding:7px;background:var(--s3);border:1px solid var(--gold);color:var(--gold);border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">🎰 下注盘</button>
   <div id="inline-board" style="display:none;margin-top:6px"></div>
   <div id="export-box" style="display:none;margin-top:8px">
     <textarea id="export-txt" style="width:100%;background:#fff;color:#000;border:2px solid var(--gold);border-radius:8px;padding:8px;font-size:12px;font-family:'Courier New',monospace;resize:none;height:70px" readonly></textarea>
@@ -835,7 +832,7 @@ function buildSrcs(H_data){
   rbGroups.forEach(function(g){
     var miss=0;
     for(var i=H.length-1;i>=0;i--){if(g.set.has(H[i]))break;miss++;}
-    if(miss>=7){g.opp.forEach(function(n){rbN.add(n);rbCount[n]=(rbCount[n]||0)+1;});}
+    if(miss>=9){g.opp.forEach(function(n){rbN.add(n);rbCount[n]=(rbCount[n]||0)+1;});}
   });
 
   var SRCS=[
@@ -884,8 +881,6 @@ function render(){
   try{
     var _src=buildSrcs(H);
     if(H.length!==lastAlertPos){
-      if(_src.extreme&&_src.extreme.length){alertSignal('ext');}
-      else if(_src.strong&&_src.strong.length){alertSignal('str');}
       lastAlertPos=H.length;
     }
   }catch(e){}
@@ -1576,57 +1571,6 @@ render();
 function gCS(id){try{return JSON.parse(localStorage.getItem(CS_KEY+id)||'{}');}catch(e){return{};}}
 function sCS(id,s){try{localStorage.setItem(CS_KEY+id,JSON.stringify(s));}catch(e){}}
 // ═══════════ 信号提示系统 ═══════════
-var ALERT_KEY='rl_alerts5';
-function getAlertSettings(){
-  try{var s=localStorage.getItem(ALERT_KEY);if(s)return JSON.parse(s);}catch(e){}
-  return {vibrate:true,sound:true,onlyExt:true};
-}
-function saveAlertSettings(s){try{localStorage.setItem(ALERT_KEY,JSON.stringify(s));}catch(e){}}
-var lastAlertPos=-1;
-function alertSignal(level){
-  // level: 'ext'=🔥🔥🔥, 'str'=🔥🔥
-  var st=getAlertSettings();
-  if(st.onlyExt&&level!=='ext')return;
-  // 震动
-  if(st.vibrate&&navigator.vibrate){
-    if(level==='ext')navigator.vibrate([300,100,300,100,300]);
-    else navigator.vibrate(200);
-  }
-  // 声音（用Web Audio API生成提示音）
-  if(st.sound){
-    try{
-      var ctx=new(window.AudioContext||window.webkitAudioContext)();
-      var o=ctx.createOscillator();var g=ctx.createGain();
-      o.connect(g);g.connect(ctx.destination);
-      o.frequency.value=level==='ext'?880:660;
-      g.gain.setValueAtTime(0.3,ctx.currentTime);
-      g.gain.exponentialRampToValueAtTime(0.01,ctx.currentTime+0.3);
-      o.start();o.stop(ctx.currentTime+0.3);
-    }catch(e){}
-  }
-}
-function showAlertSettings(){
-  var st=getAlertSettings();
-  var html='<div style="position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:var(--s2);border:1px solid var(--gold);border-radius:8px;padding:16px;z-index:9999;width:280px"><h3 style="color:var(--gold);margin-bottom:12px">🔔 提示设置</h3>'+
-    '<label style="display:block;margin-bottom:10px;color:var(--txt)"><input type="checkbox" id="alt-vib" '+(st.vibrate?'checked':'')+'> 震动 <span style="color:var(--dim);font-size:11px">(仅安卓)</span></label>'+
-    '<label style="display:block;margin-bottom:10px;color:var(--txt)"><input type="checkbox" id="alt-snd" '+(st.sound?'checked':'')+'> 声音提示</label>'+
-    
-    '<label style="display:block;margin-bottom:14px;color:var(--txt)"><input type="checkbox" id="alt-ext" '+(st.onlyExt?'checked':'')+'> 仅 🔥🔥🔥 时提示</label>'+
-    '<div style="display:flex;gap:8px"><button onclick="testAlert()" style="flex:1;padding:7px;background:var(--s3);color:var(--txt);border:1px solid var(--bd);border-radius:5px">测试</button>'+
-    '<button onclick="saveAlertCfg()" style="flex:1;padding:7px;background:var(--gold);color:#000;border:none;border-radius:5px;font-weight:700">保存</button>'+
-    '<button onclick="closeAlertCfg()" style="flex:1;padding:7px;background:var(--s3);color:var(--txt);border:1px solid var(--bd);border-radius:5px">关闭</button></div></div>';
-  var d=document.createElement('div');d.id='alert-cfg-pop';d.innerHTML=html;document.body.appendChild(d);
-}
-function testAlert(){
-  var s={vibrate:document.getElementById('alt-vib').checked,sound:document.getElementById('alt-snd').checked,onlyExt:false};
-  saveAlertSettings(s);alertSignal('ext');
-}
-function saveAlertCfg(){
-  saveAlertSettings({vibrate:document.getElementById('alt-vib').checked,sound:document.getElementById('alt-snd').checked,onlyExt:document.getElementById('alt-ext').checked});
-  closeAlertCfg();
-}
-function closeAlertCfg(){var d=document.getElementById('alert-cfg-pop');if(d)d.remove();}
-
 function gTS(id){try{return JSON.parse(localStorage.getItem(TS_KEY+id)||'{}');}catch(e){return{};}}
 function sTS(id,s){try{localStorage.setItem(TS_KEY+id,JSON.stringify(s));}catch(e){}}
 function gTL(id){try{return JSON.parse(localStorage.getItem(TL_KEY+id)||'{}');}catch(e){return{};}}
