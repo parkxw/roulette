@@ -336,6 +336,7 @@ html,body{background:var(--bg);color:var(--txt);font-family:system-ui,'PingFang 
 </div>
 
 <script>
+let lastAlertPos=-1;
 'use strict';
 var DKEY='rl_d_';
 function getDealers(){
@@ -470,6 +471,7 @@ var FS_KEY='rl_fs_';
 var TS_KEY='rl_ts_';
 var TL_KEY='rl_tl_';
   var HR_KEY='rl_hr_';
+var ZD_KEY='rl_zd_';
 var GR_KEY='rl_gr_';
 // ═══════════ 常量 ═══════════
 const WHL=[0,32,15,19,4,21,2,25,17,34,6,27,13,36,11,30,8,23,10,5,24,16,33,1,20,14,31,9,22,18,29,7,28,12,35,3,26];
@@ -502,7 +504,7 @@ const MAX_HIST=80000;
 var TAIL_GROUPS=[
   {name:'尾号9组',nums:[9,19,29],cancel:[],w:3.0}
 ];
-var TAIL_THRESH=45;
+var TAIL_THRESH=48;
 
 
 
@@ -699,6 +701,53 @@ var DK=['parity','color','size','row','col'];
 var DC=['var(--ora)','var(--red)','var(--blue)','var(--green)','var(--pur)'];
 
 // ═══════════ 区域分析 ═══════════
+function gZD(id){try{return JSON.parse(localStorage.getItem(ZD_KEY+id)||'{}');}catch(e){return{};}}
+function sZD(id,v){try{localStorage.setItem(ZD_KEY+id,JSON.stringify(v));}catch(e){}}
+function detectZoneDense(){
+  // 区域密集：5邻号区域内连续4次出现，间隔1-5局，间隔差≤1（稳定间隔）
+  // 简化逻辑：满足条件则显示推荐，不满足自动消失（无锁定）
+  // 去重叠：相同热区只保留命中最多的
+  var densityFixed=new Set();
+  var candidates=[];
+  
+  for(var core=0;core<37;core++){
+    var wi=WHL.indexOf(core);
+    var zone=new Set();
+    for(var k=-2;k<=2;k++)zone.add(WHL[(wi+k+37)%37]);
+    var rawHits=[];
+    for(var i=0;i<H.length;i++){if(zone.has(H[i]))rawHits.push(i);}
+    // 合并相邻命中（位置差≤2算同一段，只保留每段起始位置）
+    var hits=[];
+    for(var i=0;i<rawHits.length;i++){
+      if(i===0||rawHits[i]-rawHits[i-1]>2)hits.push(rawHits[i]);
+    }
+    // 但条件B(5局内有号)用原始命中判断
+    var lastRawHit=rawHits.length?rawHits[rawHits.length-1]:-99;
+    
+    if(hits.length<4)continue;
+    // 条件B：该区域最近5局内必须有号码出现（用原始命中位置，避免太久没出现仍推荐）
+    if(H.length-1-lastRawHit>=5)continue;
+    var last4=hits.slice(-4);
+    var gaps=[last4[1]-last4[0],last4[2]-last4[1],last4[3]-last4[2]];
+    var ok=gaps.every(function(g){return g>=1&&g<=4;});
+    if(!ok)continue;
+    
+    // 稳定间隔：间隔差≤1
+    var mn=Math.min.apply(null,gaps);
+    var mx=Math.max.apply(null,gaps);
+    if(mx-mn>1)continue;
+    
+    candidates.push({core:core,zone:zone,hitCount:hits.length});
+  }
+  
+  // 按命中数降序，只取最强的1个区域
+  candidates.sort(function(a,b){return b.hitCount-a.hitCount;});
+  if(candidates.length>0){
+    candidates[0].zone.forEach(function(n){densityFixed.add(n);});
+  }
+  
+  return densityFixed;
+}
 function zoneTrig(zone,req){
   var trig=[];
   var core=zone[2];
@@ -709,7 +758,7 @@ function detectZone(zone){
   for(var req=3;req>=2;req--){
     var trig=zoneTrig(zone.nums,req);if(trig.length<2)continue;
     var gaps=trig.slice(1).map(function(v,i){return v-trig[i];});
-    var lg=gaps[gaps.length-1];if(lg<2||lg>15)continue;
+    var lg=gaps[gaps.length-1];if(lg<2||lg>5)continue;
     var chain=1;for(var i=gaps.length-2;i>=0;i--){if(gaps[i]===lg)chain++;else break;}
     var ne=trig[trig.length-1]+lg,dist=ne-H.length;
     return{trig:trig,gap:lg,gapL:lg-1,chain:chain,ne:ne,dist:dist,isAlert:ne===H.length,isPend:dist>0&&dist<=lg};
@@ -755,6 +804,7 @@ function buildSrcs(H_data){
   var top3=sc.sorted.slice(0,3).map(function(e){return{n:+e[0],s:e[1],d:sc.dd[+e[0]]};});
 
   var zN=new Set();alerts.forEach(function(x){x.z.nums.forEach(function(n){zN.add(n);});});
+  var densityFixed=detectZoneDense();
   var zpN=new Set();pending.slice(0,3).forEach(function(x){x.z.nums.forEach(function(n){zpN.add(n);});});
   var t3N=new Set(top3.map(function(t){return t.n;}));
 
@@ -836,11 +886,11 @@ function buildSrcs(H_data){
   });
 
   var SRCS=[
-    {name:'区域触发',  nums:zN,   w:2.3},
-    {name:'区域即将',  nums:zpN,  w:1.8},
+    {name:'区域触发',  nums:zN,   w:2.4},
+    {name:'区域密集',nums:densityFixed,w:3.0},
     {name:'连号候选',  nums:conN, w:1.8},
     {name:'红黑大小单双',nums:rbN,w:2.1},
-    {name:'trig2', nums:new Set(),w:3.8}
+    {name:'trig2', nums:new Set(),w:3.9}
   ];
   // ╔══════════════════════════════════════════════════════════╗
   // ║   ✅  SRCS规则定义区域结束                               ║
@@ -1348,7 +1398,8 @@ function renderBoard(){
     var bg=n===0?'#1a5c3a':REDS.has(n)?'#c0392b':'#1a1a2e';
     var border='1px solid #2a2a3a';
     var outline='';
-    if(strongNums.has(n)) outline='outline:3px solid #ff4444;outline-offset:-3px;';
+    if(extremeNums.has(n)) outline='outline:4px solid #ff0000;outline-offset:-4px;box-shadow:0 0 8px #ff4444;';
+    else if(strongNums.has(n)) outline='outline:3px solid #ff4444;outline-offset:-3px;';
     else if(recNums.has(n)) outline='outline:3px solid var(--gold);outline-offset:-3px;';
     return 'background:'+bg+';border:'+border+';'+outline+'color:#fff;font-weight:700;text-align:center;cursor:pointer;border-radius:4px;font-size:12px;padding:0;-webkit-tap-highlight-color:transparent;';
   }
@@ -1709,6 +1760,7 @@ function getTA(H,tid){
 function rebuildTrackingState(){
   if(!H||!H.length)return;
   try{localStorage.removeItem(TL_KEY+curId);}catch(e){}
+  try{localStorage.removeItem(ZD_KEY+curId);}catch(e){}
   try{localStorage.removeItem(GR_KEY+curId);}catch(e){}
   // 选项B: 每个核心号独立维护状态
   var tsState={};
