@@ -523,33 +523,77 @@ let curId='t1';
 
 // ═══════════ 存储 ═══════════
 function saveTbls(){
+  // 先清理旧版残留数据(释放空间)
+  if(!window._cleanedOldKeys){
+    window._cleanedOldKeys=true;
+    try{
+      var keysToRemove=[];
+      for(var i=0;i<localStorage.length;i++){
+        var k=localStorage.key(i);
+        if(k&&k.indexOf('rl_hist5_')===0)keysToRemove.push(k);
+      }
+      keysToRemove.forEach(function(k){try{localStorage.removeItem(k);}catch(e){}});
+      if(keysToRemove.length)console.log('清理旧版数据:'+keysToRemove.length+'个');
+    }catch(e){}
+  }
+  
   try{
     var json=JSON.stringify(tbls);
     localStorage.setItem(TKEY,json);
     localStorage.setItem(CKEY,curId);
     window._saveStatus='ok';
+    // 同步备份到 IndexedDB (灾备)
+    _backupToIDB(tbls,curId);
   }catch(e){
-    // localStorage满了，尝试只保存当前盘
-    try{
-      var minimal={};
-      minimal[curId]=tbls[curId];
-      localStorage.setItem(TKEY,JSON.stringify(minimal));
-      localStorage.setItem(CKEY,curId);
-      console.warn('存储空间不足，只保存当前盘');
-      window._saveStatus='partial';
-      if(!window._warnedPartial){
-        window._warnedPartial=true;
-        alert('⚠️ 存储空间不足！\n\n其他盘的数据可能丢失。\n\n请立即:\n1. 导出当前数据备份\n2. 删除不需要的盘\n3. 刷新页面');
-      }
-    }catch(e2){
-      console.error('存储失败:',e2);
-      window._saveStatus='fail';
-      if(!window._warnedFail){
-        window._warnedFail=true;
-        alert('❌ 存储完全失败！\n\n数据无法保存到本地!\n\n请立即:\n1. 导出全部盘\n2. 清空浏览器数据\n3. 重新导入');
-      }
+    // 保存失败！绝不丢弃数据，弹强警告
+    console.error('保存失败:',e);
+    window._saveStatus='fail';
+    if(!window._warnedFail){
+      window._warnedFail=true;
+      alert('❌ 数据保存失败！\n\n您的数据还在内存中,但还没保存到本地。\n\n请立即:\n1. 点击"导出"按钮备份所有盘\n2. 删除不需要的旧盘\n3. 不要刷新页面!\n\n刷新会丢失未保存的数据。');
     }
+    // 尝试备份到 IndexedDB
+    _backupToIDB(tbls,curId);
   }
+}
+
+// 灾备：IndexedDB 备份(localStorage失败时保命)
+function _backupToIDB(tbls,curId){
+  try{
+    var req=indexedDB.open('roulette_backup',1);
+    req.onupgradeneeded=function(e){
+      var db=e.target.result;
+      if(!db.objectStoreNames.contains('data'))db.createObjectStore('data');
+    };
+    req.onsuccess=function(e){
+      var db=e.target.result;
+      var tx=db.transaction('data','readwrite');
+      var store=tx.objectStore('data');
+      store.put(tbls,'tbls');
+      store.put(curId,'curId');
+      store.put(Date.now(),'lastBackup');
+    };
+  }catch(e){}
+}
+
+// 启动时从 IndexedDB 恢复（如果 localStorage 是空的）
+function _restoreFromIDB(cb){
+  try{
+    var req=indexedDB.open('roulette_backup',1);
+    req.onupgradeneeded=function(e){
+      var db=e.target.result;
+      if(!db.objectStoreNames.contains('data'))db.createObjectStore('data');
+    };
+    req.onsuccess=function(e){
+      var db=e.target.result;
+      var tx=db.transaction('data','readonly');
+      var store=tx.objectStore('data');
+      var r1=store.get('tbls'),r2=store.get('curId');
+      r1.onsuccess=function(){
+        if(r1.result&&cb)cb(r1.result,r2.result);
+      };
+    };
+  }catch(e){if(cb)cb(null);}
 }
 function loadTbls(){
   try{
@@ -558,6 +602,20 @@ function loadTbls(){
     if(t)tbls=JSON.parse(t);
     if(c)curId=c;
   }catch(e){}
+  
+  // 如果 localStorage 是空的，尝试从 IndexedDB 灾备恢复
+  if(!tbls||!Object.keys(tbls).length){
+    _restoreFromIDB(function(bkTbls,bkCurId){
+      if(bkTbls&&Object.keys(bkTbls).length){
+        if(confirm('⚠️ 检测到本地数据已丢失，是否从灾备恢复？\n\n备份盘数：'+Object.keys(bkTbls).length)){
+          tbls=bkTbls;
+          if(bkCurId)curId=bkCurId;
+          saveTbls();
+          location.reload();
+        }
+      }
+    });
+  }
   if(!Object.keys(tbls).length){tbls={t1:{name:'盘1',data:[]}};curId='t1';}
 }
 function getD(){return tbls[curId]?.data||[];}
